@@ -15,7 +15,8 @@ import {
   BoltIcon,
   RocketLaunchIcon,
   CpuChipIcon,
-  BeakerIcon
+  BeakerIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/solid'
 import Link from 'next/link'
@@ -27,6 +28,31 @@ export default function DemoDashboard() {
     highQualityLeads: 89,
     conversionRate: 23.5,
     remainingCredits: 153
+  })
+  
+  // Predictive Intelligence Data
+  const [predictions, setPredictions] = useState({
+    revenueForcast: {
+      amount: 127000,
+      confidence: 87,
+      trend: '+12.3%',
+      timeframe: 'this month'
+    },
+    pipelineVelocity: {
+      avgDays: 23,
+      improvement: -3,
+      trend: 'faster than last month'
+    },
+    hotLeads: {
+      count: 12,
+      conversionLikelihood: 'this week',
+      totalValue: 89000
+    },
+    riskAlerts: {
+      highValueDeals: 3,
+      totalAtRisk: 245000,
+      actionNeeded: true
+    }
   })
   const [filters, setFilters] = useState({
     minScore: 0,
@@ -63,8 +89,13 @@ export default function DemoDashboard() {
       phone: '+1-555-0123',
       status: 'new',
       created_at: '2025-01-13T10:30:00Z',
-      ai_insights: 'High engagement probability. Recently posted about scaling challenges.',
-      intent_signals: ['job_posting', 'tech_stack_change', 'funding_round']
+      ai_insights: 'Decision maker with budget authority. Company actively hiring.',
+      intent_signals: ['job_posting', 'tech_stack_change', 'funding_round'],
+      conversion_probability: 92,
+      predicted_close_date: '2025-01-20',
+      next_best_action: 'Schedule discovery call',
+      engagement_likelihood: 'Very High',
+      deal_value: 45000
     },
     {
       id: 2,
@@ -79,8 +110,13 @@ export default function DemoDashboard() {
       phone: '+1-555-0124',
       status: 'contacted',
       created_at: '2025-01-13T09:15:00Z',
-      ai_insights: 'Decision maker with budget authority. Active on LinkedIn.',
-      intent_signals: ['competitor_research', 'solution_search']
+      ai_insights: 'CEO looking for growth solutions. High budget allocation.',
+      intent_signals: ['competitor_research', 'solution_search'],
+      conversion_probability: 78,
+      predicted_close_date: '2025-01-28',
+      next_best_action: 'Send ROI case study',
+      engagement_likelihood: 'High',
+      deal_value: 28000
     },
     {
       id: 3,
@@ -95,8 +131,13 @@ export default function DemoDashboard() {
       phone: '+1-555-0125',
       status: 'qualified',
       created_at: '2025-01-13T08:45:00Z',
-      ai_insights: 'Perfect fit for growth tier. Recently expanded team.',
-      intent_signals: ['hiring_spree', 'competitor_analysis']
+      ai_insights: 'Marketing director with expanding team. Budget approved.',
+      intent_signals: ['hiring_spree', 'competitor_analysis'],
+      conversion_probability: 85,
+      predicted_close_date: '2025-01-25',
+      next_best_action: 'Send custom proposal',
+      engagement_likelihood: 'Very High',
+      deal_value: 38000
     }
   ]
 
@@ -201,7 +242,112 @@ export default function DemoDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 relative z-10">
-        {/* Neural Stats */}
+        {/* Predictive Intelligence Center */}
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold mb-4">
+              <span className="gradient-text">Predictive Intelligence</span>
+              <span className="text-dark-800"> Center</span>
+            </h2>
+            <p className="text-lg text-dark-600">AI-powered forecasting and predictive analytics</p>
+          </div>
+
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            {/* Revenue Forecast */}
+            <div className="electric-card group interactive-hover relative overflow-hidden">
+              <div className="gradient-streak"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-electric-500/20 shadow-glow">
+                    <ChartBarIcon className="w-6 h-6 text-electric-400" />
+                  </div>
+                  <div className="text-xs bg-electric-500/20 text-electric-400 px-2 py-1 rounded-full">
+                    {predictions.revenueForcast.confidence}% confidence
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-dark-800">Revenue Forecast</h3>
+                <div className="text-3xl font-bold electric-text mb-1">
+                  ${(predictions.revenueForcast.amount / 1000).toFixed(0)}K
+                </div>
+                <div className="text-sm text-dark-600 mb-2">{predictions.revenueForcast.timeframe}</div>
+                <div className="text-sm text-neon-400 font-semibold">
+                  {predictions.revenueForcast.trend} vs last month
+                </div>
+              </div>
+            </div>
+
+            {/* Pipeline Velocity */}
+            <div className="glass-card group interactive-hover relative overflow-hidden">
+              <div className="gradient-streak"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-neon-500/20 shadow-neon">
+                    <RocketLaunchIcon className="w-6 h-6 text-neon-400" />
+                  </div>
+                  <div className="text-xs bg-neon-500/20 text-neon-400 px-2 py-1 rounded-full">
+                    AI Optimized
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-dark-800">Pipeline Velocity</h3>
+                <div className="text-3xl font-bold neon-text mb-1">
+                  {predictions.pipelineVelocity.avgDays} days
+                </div>
+                <div className="text-sm text-dark-600 mb-2">average close time</div>
+                <div className="text-sm text-electric-400 font-semibold">
+                  {Math.abs(predictions.pipelineVelocity.improvement)} days {predictions.pipelineVelocity.trend}
+                </div>
+              </div>
+            </div>
+
+            {/* Hot Lead Predictor */}
+            <div className="glass-card group interactive-hover relative overflow-hidden">
+              <div className="gradient-streak"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-purple-500/20 shadow-purple-glow">
+                    <BoltIcon className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+                    High Probability
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-dark-800">Hot Lead Predictor</h3>
+                <div className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent mb-1">
+                  {predictions.hotLeads.count} leads
+                </div>
+                <div className="text-sm text-dark-600 mb-2">likely to convert {predictions.hotLeads.conversionLikelihood}</div>
+                <div className="text-sm text-neon-400 font-semibold">
+                  ${(predictions.hotLeads.totalValue / 1000).toFixed(0)}K potential value
+                </div>
+              </div>
+            </div>
+
+            {/* Risk Alert Center */}
+            <div className="glass-card group interactive-hover relative overflow-hidden border-l-4 border-l-red-500/50">
+              <div className="gradient-streak"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-red-500/20 shadow-red-glow">
+                    <ExclamationTriangleIcon className="w-6 h-6 text-red-400" />
+                  </div>
+                  <div className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full animate-pulse">
+                    Action Needed
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-dark-800">Risk Alerts</h3>
+                <div className="text-3xl font-bold text-red-400 mb-1">
+                  {predictions.riskAlerts.highValueDeals} deals
+                </div>
+                <div className="text-sm text-dark-600 mb-2">at risk of stalling</div>
+                <div className="text-sm text-red-400 font-semibold">
+                  ${(predictions.riskAlerts.totalAtRisk / 1000).toFixed(0)}K pipeline at risk
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Performance Indicators */}
         <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           {statsData.map((stat, index) => (
             <div
@@ -240,7 +386,7 @@ export default function DemoDashboard() {
           ))}
         </div>
 
-        {/* Neural Filters */}
+        {/* Lead Filters */}
         <div className={`glass-card mb-8 transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="relative overflow-hidden">
             <div className="gradient-streak"></div>
@@ -250,7 +396,7 @@ export default function DemoDashboard() {
                 <MagnifyingGlassIcon className="w-5 h-5 text-electric-400" />
                 <input
                   type="text"
-                  placeholder="Search neural patterns..."
+                  placeholder="Search leads and companies..."
                   className="input-glass"
                 />
               </div>
@@ -272,16 +418,16 @@ export default function DemoDashboard() {
                 value={filters.company_size}
                 onChange={(e) => setFilters({...filters, company_size: e.target.value})}
               >
-                <option value="">All Entity Sizes</option>
-                <option value="1-10">1-10 entities</option>
-                <option value="11-50">11-50 entities</option>
-                <option value="51-200">51-200 entities</option>
-                <option value="201-500">201-500 entities</option>
-                <option value="500+">500+ entities</option>
+                <option value="">All Company Sizes</option>
+                <option value="1-10">1-10 employees</option>
+                <option value="11-50">11-50 employees</option>
+                <option value="51-200">51-200 employees</option>
+                <option value="201-500">201-500 employees</option>
+                <option value="500+">500+ employees</option>
               </select>
               
               <div className="flex items-center space-x-3">
-                <span className="text-sm text-dark-600">Neural Score:</span>
+                <span className="text-sm text-dark-600">Lead Score:</span>
                 <input
                   type="range"
                   min="0"
@@ -300,17 +446,17 @@ export default function DemoDashboard() {
         <div className={`glass-card transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-2xl font-bold gradient-text">Neural Leads</h2>
-              <p className="text-dark-600">AI-powered lead intelligence matrix</p>
+              <h2 className="text-2xl font-bold gradient-text">Lead Performance</h2>
+              <p className="text-dark-600">Conversion tracking and revenue attribution</p>
             </div>
             <div className="flex space-x-3">
               <button className="btn-secondary text-sm group">
                 <BeakerIcon className="w-4 h-4 mr-2 group-hover:animate-pulse" />
-                Export Matrix
+                Export Report
               </button>
               <button className="btn-secondary text-sm group">
                 <CpuChipIcon className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform" />
-                Bulk Neural Process
+                Bulk Actions
               </button>
             </div>
           </div>
@@ -319,11 +465,12 @@ export default function DemoDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-200/20">
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Neural Entity</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Organization</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">AI Score</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Lead Contact</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Company</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Score</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Revenue Potential</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Status</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Neural Actions</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -392,6 +539,32 @@ export default function DemoDashboard() {
                     </td>
                     
                     <td className="py-6 px-6">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            lead.conversion_probability >= 85 ? 'bg-neon-400 shadow-neon' :
+                            lead.conversion_probability >= 70 ? 'bg-electric-400 shadow-glow' :
+                            'bg-purple-400 shadow-purple-glow'
+                          }`}></div>
+                          <span className="text-xs font-semibold text-dark-700">
+                            {lead.conversion_probability}% conversion
+                          </span>
+                        </div>
+                        <div className="text-xs text-dark-600">
+                          Close: {new Date(lead.predicted_close_date).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-electric-400 font-medium">
+                          {lead.next_best_action}
+                        </div>
+                        {lead.deal_value && (
+                          <div className="text-xs text-neon-400 font-semibold">
+                            ${(lead.deal_value / 1000).toFixed(0)}K value
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    
+                    <td className="py-6 px-6">
                       <span className={`inline-flex items-center px-3 py-2 rounded-xl text-sm font-semibold capitalize backdrop-blur-sm ${getStatusColor(lead.status)}`}>
                         {lead.status === 'qualified' && <CheckCircleIcon className="w-4 h-4 mr-2" />}
                         {lead.status === 'new' && <ClockIcon className="w-4 h-4 mr-2" />}
@@ -401,13 +574,13 @@ export default function DemoDashboard() {
                     
                     <td className="py-6 px-6">
                       <div className="flex space-x-2">
-                        <button className="p-2 rounded-lg bg-dark-100/30 text-electric-400 hover:bg-electric-500/20 hover:text-electric-300 transition-all interactive-hover" title="Neural Email">
+                        <button className="p-2 rounded-lg bg-dark-100/30 text-electric-400 hover:bg-electric-500/20 hover:text-electric-300 transition-all interactive-hover" title="Send Email">
                           <EnvelopeIcon className="w-5 h-5" />
                         </button>
-                        <button className="p-2 rounded-lg bg-dark-100/30 text-neon-400 hover:bg-neon-500/20 hover:text-neon-300 transition-all interactive-hover" title="Quantum Call">
+                        <button className="p-2 rounded-lg bg-dark-100/30 text-neon-400 hover:bg-neon-500/20 hover:text-neon-300 transition-all interactive-hover" title="Schedule Call">
                           <PhoneIcon className="w-5 h-5" />
                         </button>
-                        <button className="p-2 rounded-lg bg-dark-100/30 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 transition-all interactive-hover" title="Deep Analysis">
+                        <button className="p-2 rounded-lg bg-dark-100/30 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 transition-all interactive-hover" title="View Profile">
                           <CpuChipIcon className="w-5 h-5" />
                         </button>
                       </div>
@@ -422,11 +595,11 @@ export default function DemoDashboard() {
           <div className="flex justify-between items-center mt-8 pt-6 border-t border-dark-200/20">
             <div className="text-sm text-dark-600">
               Displaying <span className="electric-text font-semibold">1-3</span> of{' '}
-              <span className="gradient-text font-semibold">{leads.length} neural entities</span>
+              <span className="gradient-text font-semibold">{leads.length} leads</span>
             </div>
             <div className="flex space-x-2">
-              <button className="btn-secondary text-sm">← Previous Matrix</button>
-              <button className="btn-secondary text-sm">Next Matrix →</button>
+              <button className="btn-secondary text-sm">← Previous Page</button>
+              <button className="btn-secondary text-sm">Next Page →</button>
             </div>
           </div>
         </div>
