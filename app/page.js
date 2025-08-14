@@ -110,7 +110,7 @@ export default function HomePage() {
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/features" className="btn-ghost">Features</Link>
               <Link href="/pricing" className="btn-ghost">Pricing</Link>
-              <Link href="/dashboard" className="btn-ghost">Dashboard</Link>
+              <Link href="/demo-dashboard" className="btn-ghost">Demo Dashboard</Link>
               <Link href="/about" className="btn-ghost">About</Link>
             </div>
             <div className="flex items-center space-x-4">
