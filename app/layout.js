@@ -42,10 +42,20 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       afterSignInUrl="/dashboard"
       afterSignUpUrl="/dashboard"
+      appearance={{
+        baseTheme: 'dark',
+        variables: {
+          colorPrimary: '#3b82f6',
+          colorBackground: '#0f172a',
+          colorInputBackground: '#1e293b',
+          colorInputText: '#ffffff'
+        }
+      }}
     >
       <html lang="en" className={inter.className}>
         <body className="antialiased">
