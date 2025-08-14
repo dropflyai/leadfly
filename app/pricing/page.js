@@ -242,14 +242,13 @@ export default function PricingPage() {
                               <span className="text-dark-700 text-xs" style={{textAlign: 'center', display: 'block'}}>{feature}</span>
                             </li>
                           ))}
+                          {plan.features.length > 5 && (
+                            <li className="text-xs text-dark-600" style={{textAlign: 'center'}}>
+                              +{plan.features.length - 5} more features
+                            </li>
+                          )}
                         </ul>
                       </div>
-                        {plan.features.length > 5 && (
-                          <li className="text-xs text-dark-600" style={{textAlign: 'center'}}>
-                            +{plan.features.length - 5} more features
-                          </li>
-                        )}
-                      </ul>
                     </div>
 
                     {/* Limitations */}
