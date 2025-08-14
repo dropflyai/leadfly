@@ -64,8 +64,6 @@ export default function DemoDashboard() {
   })
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
-  const [selectedLead, setSelectedLead] = useState(null)
-  const [showLeadModal, setShowLeadModal] = useState(false)
   
   useEffect(() => {
     setIsLoaded(true)
@@ -110,15 +108,6 @@ Insights: ${lead.ai_insights}
     })
   }
 
-  const openLeadModal = (lead) => {
-    setSelectedLead(lead)
-    setShowLeadModal(true)
-  }
-
-  const closeLeadModal = () => {
-    setSelectedLead(null)
-    setShowLeadModal(false)
-  }
 
   const exportLeads = () => {
     const csvContent = [
@@ -797,10 +786,9 @@ Insights: ${lead.ai_insights}
               <thead>
                 <tr className="border-b border-dark-200/20">
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Lead Contact</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Company Details</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Contact Info</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Company</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Score</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Revenue Potential</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Deal Value</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Status</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Actions</th>
                 </tr>
@@ -813,9 +801,9 @@ Insights: ${lead.ai_insights}
                     style={{ transitionDelay: `${400 + index * 100}ms` }}
                   >
                     <td className="py-6 px-6">
-                      <div 
-                        className="flex items-center space-x-4 cursor-pointer hover:bg-dark-100/10 rounded-lg p-2 -m-2 transition-all"
-                        onClick={() => openLeadModal(lead)}
+                      <Link 
+                        href={`/demo-dashboard/lead/${lead.id}`}
+                        className="flex items-center space-x-4 cursor-pointer hover:bg-dark-100/10 rounded-lg p-2 -m-2 transition-all block"
                       >
                         <div className="relative">
                           <div className="w-12 h-12 rounded-xl bg-electric-gradient flex items-center justify-center shadow-glow">
@@ -848,73 +836,25 @@ Insights: ${lead.ai_insights}
                     <td className="py-6 px-6">
                       <div>
                         <div className="font-semibold text-dark-900">{lead.company_name}</div>
-                        <div className="text-sm text-dark-600">{lead.industry} • {lead.employee_count} employees</div>
-                        <div className="text-xs text-dark-500">{lead.company_revenue} revenue</div>
-                        <div className="text-xs text-electric-400 mt-1">{lead.company_website}</div>
-                        {lead.technologies && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {lead.technologies.slice(0, 2).map((tech, idx) => (
-                              <span key={idx} className="text-xs px-2 py-1 bg-neon-500/20 text-neon-400 rounded-full">
-                                {tech}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <div className="text-sm text-dark-600">{lead.industry}</div>
+                        <div className="text-xs text-dark-500">{lead.employee_count} employees</div>
                       </div>
                     </td>
                     
                     <td className="py-6 px-6">
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium text-dark-800">{lead.phone}</div>
-                        {lead.mobile && (
-                          <div className="text-xs text-dark-600">Mobile: {lead.mobile}</div>
-                        )}
-                        <div className="text-xs text-electric-400">
-                          <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-electric-300">
-                            LinkedIn Profile
-                          </a>
-                        </div>
-                        <div className="text-xs text-dark-500">{lead.timezone} • {lead.lead_source}</div>
+                      <div className={`px-3 py-2 rounded-xl text-sm font-bold backdrop-blur-sm ${getScoreColor(lead.lead_score)}`}>
+                        {lead.lead_score}/100
                       </div>
                     </td>
                     
                     <td className="py-6 px-6">
-                      <div className="flex items-center space-x-3">
-                        <div className={`px-3 py-2 rounded-xl text-sm font-bold backdrop-blur-sm ${getScoreColor(lead.lead_score)}`}>
-                          {lead.lead_score}/100
-                        </div>
-                        <div className="w-16 h-2 bg-dark-200/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-electric-gradient transition-all duration-500"
-                            style={{ width: `${lead.lead_score}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </td>
-                    
-                    <td className="py-6 px-6">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            lead.conversion_probability >= 85 ? 'bg-neon-400 shadow-neon' :
-                            lead.conversion_probability >= 70 ? 'bg-electric-400 shadow-glow' :
-                            'bg-purple-400 shadow-purple-glow'
-                          }`}></div>
-                          <span className="text-xs font-semibold text-dark-700">
-                            {lead.conversion_probability}% conversion
-                          </span>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold neon-text mb-1">
+                          ${(lead.deal_value / 1000).toFixed(0)}K
                         </div>
                         <div className="text-xs text-dark-600">
-                          Close: {new Date(lead.predicted_close_date).toLocaleDateString()}
+                          {lead.conversion_probability}% likely
                         </div>
-                        <div className="text-xs text-electric-400 font-medium">
-                          {lead.next_best_action}
-                        </div>
-                        {lead.deal_value && (
-                          <div className="text-xs text-neon-400 font-semibold">
-                            ${(lead.deal_value / 1000).toFixed(0)}K value
-                          </div>
-                        )}
                       </div>
                     </td>
                     
@@ -963,311 +903,6 @@ Insights: ${lead.ai_insights}
         </div>
       </div>
 
-      {/* Premium Lead Intelligence Modal */}
-      {showLeadModal && selectedLead && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-50 rounded-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-electric-500/20">
-            {/* Modal Header */}
-            <div className="bg-electric-gradient p-6 text-white">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center">
-                    <span className="text-2xl font-bold">
-                      {selectedLead.first_name[0]}{selectedLead.last_name[0]}
-                    </span>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">{selectedLead.first_name} {selectedLead.last_name}</h2>
-                    <p className="text-lg opacity-90">{selectedLead.job_title} at {selectedLead.company_name}</p>
-                    <div className="flex items-center space-x-4 mt-2">
-                      <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                        Score: {selectedLead.lead_score}/100
-                      </span>
-                      <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                        {selectedLead.conversion_probability}% Conversion Probability
-                      </span>
-                      <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                        ${(selectedLead.deal_value / 1000).toFixed(0)}K Deal Value
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={closeLeadModal}
-                  className="text-white/80 hover:text-white transition-colors"
-                >
-                  <XCircleIconOutline className="w-8 h-8" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                {/* Financial Intelligence */}
-                <div className="glass-card">
-                  <h3 className="text-xl font-bold mb-4 gradient-text flex items-center">
-                    <ChartBarIcon className="w-6 h-6 mr-2" />
-                    Financial Intelligence
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Annual Revenue:</span>
-                      <span className="font-semibold">{selectedLead.financialHealth?.revenue}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Growth Rate:</span>
-                      <span className="font-semibold text-neon-400">{selectedLead.financialHealth?.growth}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Profitability:</span>
-                      <span className="font-semibold">{selectedLead.financialHealth?.profitability}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Last Funding:</span>
-                      <span className="font-semibold">{selectedLead.financialHealth?.lastFunding}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Credit Rating:</span>
-                      <span className="font-semibold electric-text">{selectedLead.financialHealth?.creditRating}</span>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-dark-200/20">
-                      <p className="text-sm text-dark-600 mb-2">Key Investors:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedLead.financialHealth?.investors?.map((investor, idx) => (
-                          <span key={idx} className="text-xs px-2 py-1 bg-electric-500/20 text-electric-400 rounded-full">
-                            {investor}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Organizational Intelligence */}
-                <div className="glass-card">
-                  <h3 className="text-xl font-bold mb-4 gradient-text flex items-center">
-                    <UserGroupIcon className="w-6 h-6 mr-2" />
-                    Organizational Intelligence
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Total Employees:</span>
-                      <span className="font-semibold">{selectedLead.organizationalIntel?.totalEmployees}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Recent Hires:</span>
-                      <span className="font-semibold text-neon-400">+{selectedLead.organizationalIntel?.recentHires}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Reports To:</span>
-                      <span className="font-semibold">{selectedLead.organizationalIntel?.reportingStructure?.reportsTo}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-dark-600">Team Size:</span>
-                      <span className="font-semibold">{selectedLead.organizationalIntel?.reportingStructure?.teamSize}</span>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-dark-200/20">
-                      <p className="text-sm text-dark-600 mb-2">Department Growth:</p>
-                      <div className="space-y-2">
-                        {selectedLead.organizationalIntel?.departments?.map((dept, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span>{dept.name}: {dept.size}</span>
-                            <span className="text-neon-400">{dept.growth}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Intent & Buying Signals */}
-                <div className="glass-card">
-                  <h3 className="text-xl font-bold mb-4 gradient-text flex items-center">
-                    <RocketLaunchIcon className="w-6 h-6 mr-2" />
-                    Intent & Buying Signals
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-semibold text-dark-700 mb-2">Recent Activity:</p>
-                      <ul className="space-y-1">
-                        {selectedLead.intentSignals?.recentActivity?.map((activity, idx) => (
-                          <li key={idx} className="text-sm text-dark-600 flex items-start">
-                            <span className="w-2 h-2 bg-electric-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                            {activity}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-dark-700 mb-2">Buying Signals:</p>
-                      <ul className="space-y-1">
-                        {selectedLead.intentSignals?.buyingSignals?.map((signal, idx) => (
-                          <li key={idx} className="text-sm text-neon-400 flex items-start">
-                            <CheckIcon className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
-                            {signal}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="pt-3 border-t border-dark-200/20">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-dark-600">Timeline:</span>
-                        <span className="font-semibold text-purple-400">{selectedLead.intentSignals?.timeline}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-dark-600">Budget:</span>
-                        <span className="font-semibold electric-text">{selectedLead.intentSignals?.budget}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Competitive Intelligence */}
-                <div className="glass-card">
-                  <h3 className="text-xl font-bold mb-4 gradient-text flex items-center">
-                    <BeakerIcon className="w-6 h-6 mr-2" />
-                    Competitive Intelligence
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-semibold text-dark-700 mb-2">Current Tech Stack:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedLead.competitiveIntel?.currentTools?.map((tool, idx) => (
-                          <span key={idx} className="text-xs px-2 py-1 bg-purple-500/20 text-purple-400 rounded-full">
-                            {tool}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-dark-700 mb-2">Pain Points:</p>
-                      <ul className="space-y-1">
-                        {selectedLead.competitiveIntel?.painPoints?.map((pain, idx) => (
-                          <li key={idx} className="text-sm text-red-400 flex items-start">
-                            <ExclamationTriangleIcon className="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" />
-                            {pain}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-dark-700 mb-2">Evaluating:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedLead.competitiveIntel?.competitorEvaluations?.map((comp, idx) => (
-                          <span key={idx} className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full">
-                            {comp}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social & News Intelligence */}
-                <div className="glass-card lg:col-span-2">
-                  <h3 className="text-xl font-bold mb-4 gradient-text flex items-center">
-                    <GlobeAltIcon className="w-6 h-6 mr-2" />
-                    Social & News Intelligence
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-semibold mb-3">Social Activity</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-dark-600">LinkedIn:</span>
-                          <span className="font-semibold">{selectedLead.socialIntel?.linkedinActivity}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-dark-600">Engagement:</span>
-                          <span className="font-semibold text-neon-400">{selectedLead.socialIntel?.contentEngagement}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm text-dark-600 mb-2">Recent Posts:</p>
-                          <div className="space-y-2">
-                            {selectedLead.socialIntel?.recentPosts?.map((post, idx) => (
-                              <div key={idx} className="text-sm italic text-dark-700 border-l-2 border-electric-500/20 pl-3">
-                                "{post}"
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-3">News & Events</h4>
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-sm text-dark-600 mb-2">Recent Company News:</p>
-                          <ul className="space-y-1">
-                            {selectedLead.newsIntel?.recentNews?.slice(0, 2).map((news, idx) => (
-                              <li key={idx} className="text-sm text-dark-700">
-                                • {news}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-dark-600">Upcoming Events:</span>
-                          <span className="font-semibold text-purple-400">{selectedLead.newsIntel?.marketEvents}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recommended Actions */}
-                <div className="glass-card lg:col-span-2 border-2 border-electric-500/30">
-                  <h3 className="text-xl font-bold mb-4 gradient-text flex items-center">
-                    <LightBulbIcon className="w-6 h-6 mr-2" />
-                    AI-Powered Recommendations
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-electric-500/10 p-4 rounded-lg">
-                      <h4 className="font-semibold electric-text mb-2">Next Best Action</h4>
-                      <p className="text-sm text-dark-700">{selectedLead.next_best_action}</p>
-                      <p className="text-xs text-electric-400 mt-2">Optimal timing: Within 48 hours</p>
-                    </div>
-                    <div className="bg-neon-500/10 p-4 rounded-lg">
-                      <h4 className="font-semibold neon-text mb-2">Talking Points</h4>
-                      <ul className="text-sm text-dark-700 space-y-1">
-                        <li>• Reference their recent Series C funding</li>
-                        <li>• Discuss scaling challenges they're facing</li>
-                        <li>• Mention competitor analysis insights</li>
-                      </ul>
-                    </div>
-                    <div className="bg-purple-500/10 p-4 rounded-lg">
-                      <h4 className="font-semibold text-purple-400 mb-2">Risk Factors</h4>
-                      <ul className="text-sm text-dark-700 space-y-1">
-                        <li>• Budget cycle timing</li>
-                        <li>• Multiple vendor evaluations</li>
-                        <li>• Decision committee involvement</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Premium Upsell Banner */}
-              <div className="mt-8 bg-gradient-to-r from-electric-500/10 to-purple-500/10 p-6 rounded-lg border border-electric-500/20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-lg gradient-text">🚀 Premium Intelligence Unlocked</h4>
-                    <p className="text-dark-600 mt-1">
-                      This comprehensive research report would typically cost $200+ per lead from other providers.
-                      LeadFly AI Premium subscribers get unlimited access to enterprise-grade intelligence.
-                    </p>
-                  </div>
-                  <button className="btn-primary ml-6 whitespace-nowrap">
-                    Upgrade to Premium
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
