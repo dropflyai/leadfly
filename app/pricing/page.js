@@ -123,7 +123,7 @@ export default function PricingPage() {
               <span className="gradient-text">Enterprise</span>
               <span className="text-dark-800"> Pricing</span>
             </h1>
-            {/* DEPLOYMENT VERIFICATION: AUG-14-2025-20:48 - ULTIMATE CENTER FIX */}
+            {/* DEPLOYMENT VERIFICATION: AUG-14-2025-21:00 - FINAL AUTH FIX */}
             <p className="text-xl text-dark-600 mb-8 max-w-3xl mx-auto">
               Transparent pricing designed to scale with your business growth. 
               From startup agility to enterprise excellence.
