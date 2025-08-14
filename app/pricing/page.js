@@ -196,7 +196,7 @@ export default function PricingPage() {
                           Was ${plan.originalPrice[billingPeriod].toLocaleString()}/{billingPeriod === 'monthly' ? 'month' : 'year'}
                         </div>
                       )}
-                      <div className={`text-4xl font-bold mb-2 bg-gradient-to-r ${plan.gradient} bg-clip-text text-transparent`}>
+                      <div className={`text-4xl font-bold mb-2 text-dark-900`}>
                         ${plan.price[billingPeriod].toLocaleString()}
                       </div>
                       <div className="text-sm text-dark-600">
