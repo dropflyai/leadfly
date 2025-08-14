@@ -42,16 +42,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
+      signInUrl="/auth"
+      signUpUrl="/signup"
       afterSignInUrl="/dashboard"
       afterSignUpUrl="/dashboard"
-      appearance={{
-        elements: {
-          rootBox: "w-full",
-          card: "shadow-2xl",
-        }
-      }}
     >
       <html lang="en" className={inter.className}>
         <body className="antialiased">

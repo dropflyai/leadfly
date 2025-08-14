@@ -23,44 +23,45 @@ export default function SignupPage() {
               </div>
               <h1 className="text-2xl font-bold gradient-text">LeadFly AI</h1>
             </Link>
-            <div className="flex space-x-4">
-              <Link href="/auth" className="btn-ghost">Sign In</Link>
-            </div>
+            <Link href="/" className="btn-ghost">
+              ← Back to Home
+            </Link>
           </div>
         </div>
       </nav>
 
-      <div className="pt-24 px-6">
-        <div className="max-w-md mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold gradient-text mb-4">
-              Start Your Neural Lead Generation
-            </h2>
-            <p className="text-xl text-dark-600">
-              Join thousands of companies using AI to generate high-quality leads and accelerate growth
-            </p>
-          </div>
+      <div className="flex items-center justify-center min-h-screen pt-16 px-6">
+        <div className="max-w-md w-full">
+          <div className="electric-card">
+            <div className="text-center mb-8">
+              <div className="relative inline-block mb-4">
+                <SparklesIcon className="w-12 h-12 text-electric-400 animate-glow-pulse" />
+                <div className="absolute inset-0 bg-electric-400/20 blur-xl rounded-full"></div>
+              </div>
+              <h2 className="text-3xl font-bold gradient-text mb-2">
+                Join Neural Network
+              </h2>
+              <p className="text-dark-600">
+                Create your AI command center account
+              </p>
+            </div>
 
-          {/* Signup Form with Clerk */}
-          <div className="glass-card">
-            <h3 className="text-xl font-bold gradient-text mb-6 text-center">Create Your Account</h3>
-            
             {/* Clerk SignUp Component */}
             <div className="flex justify-center">
               <SignUp 
-                routing="hash"
-                signInUrl="/auth"
-                afterSignUpUrl="/dashboard"
                 appearance={{
                   elements: {
-                    formButtonPrimary: "btn-primary w-full",
-                    card: "border-0 shadow-none p-0",
+                    formButtonPrimary: "bg-electric-500 hover:bg-electric-600 text-white w-full py-3 rounded-xl font-semibold transition-all duration-300",
+                    card: "bg-transparent border-0 shadow-none p-0 w-full",
                     headerTitle: "hidden",
                     headerSubtitle: "hidden",
-                    socialButtonsBlockButton: "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 w-full group flex items-center justify-center space-x-3 px-4 py-4 rounded-xl font-semibold transition-all duration-300 shadow-sm hover:shadow-md mb-4",
-                    formFieldInput: "input-field",
+                    socialButtonsBlockButton: "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 shadow-sm hover:shadow-md mb-4",
+                    formFieldInput: "w-full px-4 py-3 bg-dark-100/30 backdrop-blur-sm border border-dark-300/30 rounded-xl text-dark-800 placeholder-dark-500 focus:border-electric-400 focus:bg-dark-100/50 focus:outline-none focus:ring-2 focus:ring-electric-400/20 transition-all duration-300 hover:border-dark-400/50",
                     footerActionLink: "text-electric-400 hover:text-electric-300 font-semibold transition-colors",
+                    footerActionText: "text-dark-600",
+                    dividerLine: "bg-dark-200/30",
+                    dividerText: "text-dark-600 text-sm",
+                    formFieldLabel: "text-dark-700 font-medium",
                     identityPreviewEditButton: "text-electric-400 hover:text-electric-300"
                   }
                 }}
@@ -69,16 +70,8 @@ export default function SignupPage() {
 
             <div className="mt-6 pt-6 border-t border-dark-200/30">
               <p className="text-xs text-dark-500 text-center">
-                By signing up, you agree to our Terms of Service and Privacy Policy
+                By creating an account, you agree to quantum-scale lead generation with 95.7% AI precision
               </p>
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-dark-200/30">
-              <div className="text-center">
-                <Link href="/pricing" className="btn-secondary text-sm">
-                  View Pricing Plans
-                </Link>
-              </div>
             </div>
           </div>
         </div>
