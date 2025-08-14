@@ -126,7 +126,7 @@ export default function PricingPage() {
               <span className="gradient-text">Enterprise</span>
               <span className="text-dark-800"> Pricing</span>
             </h1>
-            {/* DEPLOYMENT VERIFICATION: AUG-14-2025-20:45 - FINAL CENTER ALIGNMENT FIX */}
+            {/* DEPLOYMENT VERIFICATION: AUG-14-2025-20:48 - ULTIMATE CENTER FIX */}
             <p className="text-xl text-dark-600 mb-8 max-w-3xl mx-auto">
               Transparent pricing designed to scale with your business growth. 
               From startup agility to enterprise excellence.
@@ -230,15 +230,18 @@ export default function PricingPage() {
                     {/* Features */}
                     <div className="mb-6">
                       <h4 className="text-sm font-semibold text-dark-800 mb-3" style={{textAlign: 'center'}}>What's Included:</h4>
-                      <ul className="space-y-2 text-sm" style={{textAlign: 'center'}}>
-                        {plan.features.slice(0, 5).map((feature, idx) => (
-                          <li key={idx} className="flex items-center justify-center" style={{justifyContent: 'center', textAlign: 'center'}}>
-                            <CheckIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${
-                              plan.popular ? 'text-electric-400' : 'text-neon-400'
-                            }`} />
-                            <span className="text-dark-700 text-xs" style={{textAlign: 'center'}}>{feature}</span>
-                          </li>
-                        ))}
+                      <div style={{width: '100%', textAlign: 'center'}}>
+                        <ul className="space-y-2 text-sm" style={{textAlign: 'center', listStyle: 'none', padding: 0, margin: 0}}>
+                          {plan.features.slice(0, 5).map((feature, idx) => (
+                            <li key={idx} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', width: '100%'}}>
+                              <CheckIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${
+                                plan.popular ? 'text-electric-400' : 'text-neon-400'
+                              }`} />
+                              <span className="text-dark-700 text-xs" style={{textAlign: 'center', display: 'block'}}>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                         {plan.features.length > 5 && (
                           <li className="text-xs text-dark-600" style={{textAlign: 'center'}}>
                             +{plan.features.length - 5} more features
