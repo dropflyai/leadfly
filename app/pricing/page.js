@@ -126,7 +126,7 @@ export default function PricingPage() {
               <span className="gradient-text">Enterprise</span>
               <span className="text-dark-800"> Pricing</span>
             </h1>
-            {/* DEPLOYMENT VERIFICATION: AUG-14-2025-20:40 - BADGE CENTERING UPDATE */}
+            {/* DEPLOYMENT VERIFICATION: AUG-14-2025-20:45 - FINAL CENTER ALIGNMENT FIX */}
             <p className="text-xl text-dark-600 mb-8 max-w-3xl mx-auto">
               Transparent pricing designed to scale with your business growth. 
               From startup agility to enterprise excellence.
@@ -229,18 +229,18 @@ export default function PricingPage() {
                     
                     {/* Features */}
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold text-dark-800 mb-3 text-center">What's Included:</h4>
-                      <ul className="space-y-2 text-sm">
+                      <h4 className="text-sm font-semibold text-dark-800 mb-3" style={{textAlign: 'center'}}>What's Included:</h4>
+                      <ul className="space-y-2 text-sm" style={{textAlign: 'center'}}>
                         {plan.features.slice(0, 5).map((feature, idx) => (
-                          <li key={idx} className="flex items-center justify-center">
+                          <li key={idx} className="flex items-center justify-center" style={{justifyContent: 'center', textAlign: 'center'}}>
                             <CheckIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${
                               plan.popular ? 'text-electric-400' : 'text-neon-400'
                             }`} />
-                            <span className="text-dark-700 text-center text-xs">{feature}</span>
+                            <span className="text-dark-700 text-xs" style={{textAlign: 'center'}}>{feature}</span>
                           </li>
                         ))}
                         {plan.features.length > 5 && (
-                          <li className="text-xs text-dark-600 text-center">
+                          <li className="text-xs text-dark-600" style={{textAlign: 'center'}}>
                             +{plan.features.length - 5} more features
                           </li>
                         )}
