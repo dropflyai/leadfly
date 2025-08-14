@@ -17,10 +17,8 @@ import {
   ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
-import { PERMANENT_PRICING, getAllPricing } from '../pricing-config.js'
 
 export default function HomePage() {
-  const [selectedPlan, setSelectedPlan] = useState('pro')
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
 
@@ -34,20 +32,6 @@ export default function HomePage() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
-
-  const plans = getAllPricing().map(plan => ({
-    id: plan.id,
-    name: plan.name,
-    price: plan.monthly_price,
-    originalPrice: plan.promotional_price ? plan.monthly_price : null,
-    promotional_price: plan.promotional_price,
-    leads: plan.leads_per_month,
-    warmLeads: plan.leads_per_month,
-    badge: plan.badge,
-    features: plan.features.slice(0, 4), // Show first 4 features for homepage
-    popular: plan.popular,
-    gradient: plan.gradient
-  }))
 
   const features = [
     {
@@ -262,110 +246,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="relative py-20 px-6 lg:px-8">
-        <div className="absolute inset-0">
-          <div className="gradient-streak-vertical opacity-5"></div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto relative">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold mb-6">
-              <span className="gradient-text">Simple</span>
-              <span className="text-dark-800"> Pricing</span>
-            </h2>
-            <p className="text-xl text-dark-600">
-              Choose the plan that scales with your business growth and success
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {plans.map((plan, index) => (
-              <div
-                key={plan.id}
-                className={`relative group transition-all duration-500 delay-${index * 50} ${
-                  isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                } ${
-                  plan.popular 
-                    ? 'electric-card scale-105 z-10' 
-                    : 'glass-card hover:scale-105'
-                }`}
-              >
-                {/* Badge */}
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                  <div className={`px-3 py-1 rounded-full text-xs font-semibold shadow-glow ${
-                    plan.popular 
-                      ? 'bg-electric-gradient text-white' 
-                      : plan.badge === 'Loss Leader' 
-                        ? 'bg-neon-gradient text-white'
-                        : plan.badge === 'White Label'
-                          ? 'bg-purple-gradient text-white'
-                          : 'bg-dark-200 text-dark-700'
-                  }`}>
-                    {plan.badge}
-                  </div>
-                </div>
-                
-                <div className="relative overflow-hidden pt-2">
-                  <div className="gradient-streak"></div>
-                  
-                  <div className="text-center relative z-10">
-                    <h3 className="text-lg font-bold mb-4 text-dark-800">{plan.name}</h3>
-                    
-                    <div className="mb-4">
-                      {plan.promotional_price && (
-                        <div className="text-sm text-dark-600 line-through mb-1">
-                          Was ${plan.price}/month
-                        </div>
-                      )}
-                      <div className={`text-3xl font-bold mb-1 bg-gradient-to-r ${plan.gradient} bg-clip-text text-transparent`}>
-                        ${plan.promotional_price || plan.price}
-                      </div>
-                      <div className="text-xs text-dark-600">/month</div>
-                      {plan.promotional_price && (
-                        <div className="text-xs text-green-600 font-semibold mt-1">
-                          First month special: Save ${plan.price - plan.promotional_price}!
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mb-4">
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-electric-600">
-                          {plan.warmLeads.toLocaleString()} qualified leads
-                        </div>
-                        <div className="text-xs text-dark-600">per month</div>
-                      </div>
-                    </div>
-                    
-                    <ul className="space-y-2 mb-6 text-xs">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start">
-                          <CheckIcon className={`w-3 h-3 mr-2 mt-1 flex-shrink-0 ${
-                            plan.popular ? 'text-electric-400' : 'text-neon-400'
-                          }`} />
-                          <span className="text-dark-700 text-left">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    
-                    <Link 
-                      href="/pricing"
-                      className={`w-full py-2 rounded-xl font-semibold transition-all duration-300 text-center block text-sm ${
-                        plan.popular 
-                          ? 'btn-primary' 
-                          : 'btn-secondary hover:border-electric-500/50'
-                      }`}
-                    >
-                      {plan.id === 'starter' ? 'Start Free Trial' : `Choose ${plan.name}`}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Social Proof */}
       <section className="relative py-20 px-6 lg:px-8">
