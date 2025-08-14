@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronRightIcon, CheckIcon, StarIcon, SparklesIcon } from '@heroicons/react/24/solid'
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { 
   BoltIcon, 
   ChartBarIcon, 
@@ -128,11 +129,21 @@ export default function HomePage() {
               <Link href="/about" className="btn-ghost">About</Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/signup" className="btn-secondary">Sign In</Link>
-              <Link href="/signup" className="btn-primary group">
-                Start Free Trial
-                <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="btn-secondary">Sign In</button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="btn-primary group">
+                    Start Free Trial
+                    <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                <Link href="/dashboard" className="btn-secondary">Dashboard</Link>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
             </div>
           </div>
         </div>

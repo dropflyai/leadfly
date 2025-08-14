@@ -1,0 +1,39 @@
+[
+  {
+    "id": "1",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "tier": "growth",
+    "status": "active",
+    "monthly_leads": 100,
+    "leads_used_this_period": 0,
+    "created_at": "2025-08-14T11:05:18.055Z"
+  },
+  {
+    "id": "2",
+    "user_id": "dropfly-test-2025",
+    "tier": "enterprise",
+    "status": "active",
+    "monthly_leads": 1000,
+    "leads_used_this_period": 0,
+    "created_at": "2025-08-14T11:05:18.055Z"
+  },
+  {
+    "id": "3",
+    "user_id": "admin-leadfly-2025",
+    "tier": "enterprise",
+    "status": "active",
+    "monthly_leads": 5000,
+    "leads_used_this_period": 0,
+    "created_at": "2025-08-14T11:05:18.055Z"
+  },
+  {
+    "id": "4",
+    "user_id": "test-founder-2025",
+    "tier": "enterprise",
+    "status": "active",
+    "monthly_leads": 1000,
+    "leads_used_this_period": 28,
+    "promo_code": "FOUNDER100",
+    "created_at": "2025-08-14T11:05:18.055Z"
+  }
+]

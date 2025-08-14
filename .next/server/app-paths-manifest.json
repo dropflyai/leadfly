@@ -1,14 +1,1 @@
-{
-  "/_not-found": "app/_not-found.js",
-  "/about/page": "app/about/page.js",
-  "/api/leads/generate/route": "app/api/leads/generate/route.js",
-  "/api/leads/route": "app/api/leads/route.js",
-  "/api/stripe/create-subscription/route": "app/api/stripe/create-subscription/route.js",
-  "/api/stripe/webhook/route": "app/api/stripe/webhook/route.js",
-  "/auth/page": "app/auth/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/features/page": "app/features/page.js",
-  "/generate/page": "app/generate/page.js",
-  "/page": "app/page.js",
-  "/pricing/page": "app/pricing/page.js"
-}
+{}

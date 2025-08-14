@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { SignedIn, SignedOut, RedirectToSignIn, useUser, UserButton } from '@clerk/nextjs'
 import { 
   ChartBarIcon, 
   UserGroupIcon, 
@@ -20,6 +21,7 @@ import {
 import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/solid'
 
 export default function Dashboard() {
+  const { user, isLoaded: userLoaded } = useUser()
   const [leads, setLeads] = useState([])
   const [stats, setStats] = useState({
     totalLeads: 347,
@@ -34,6 +36,15 @@ export default function Dashboard() {
   })
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
+  
+  if (!userLoaded) {
+    return <div className="min-h-screen bg-dark-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-electric-400/30 border-t-electric-400 rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-dark-600">Loading...</p>
+      </div>
+    </div>
+  }
 
   useEffect(() => {
     setIsLoaded(true)
@@ -149,7 +160,12 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="min-h-screen bg-dark-50 text-dark-900 relative overflow-hidden">
+    <>
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
+      <SignedIn>
+        <div className="min-h-screen bg-dark-50 text-dark-900 relative overflow-hidden">
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="gradient-streak-vertical"></div>
@@ -429,5 +445,7 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+      </SignedIn>
+    </>
   )
 }
