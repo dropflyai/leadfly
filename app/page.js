@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronRightIcon, CheckIcon, StarIcon, SparklesIcon } from '@heroicons/react/24/solid'
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { 
   BoltIcon, 
   ChartBarIcon, 
@@ -114,15 +114,11 @@ export default function HomePage() {
             </div>
             <div className="flex items-center space-x-4">
               <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="btn-secondary">Sign In</button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="btn-primary group">
-                    Start Free Trial
-                    <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </SignUpButton>
+                <Link href="/sign-in" className="btn-secondary">Sign In</Link>
+                <Link href="/sign-up" className="btn-primary group">
+                  Start Free Trial
+                  <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </SignedOut>
               <SignedIn>
                 <Link href="/dashboard" className="btn-secondary">Dashboard</Link>
@@ -161,15 +157,13 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-              <SignUpButton mode="modal">
-                <button className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
-                  <span className="relative z-10 flex items-center">
-                    <RocketLaunchIcon className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
-                    Start Free Trial
-                  </span>
-                  <div className="gradient-streak"></div>
-                </button>
-              </SignUpButton>
+              <Link href="/sign-up" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+                <span className="relative z-10 flex items-center">
+                  <RocketLaunchIcon className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
+                  Start Free Trial
+                </span>
+                <div className="gradient-streak"></div>
+              </Link>
               
               <Link href="/features" className="btn-secondary text-xl px-8 py-4 group">
                 <span className="flex items-center">
@@ -331,15 +325,13 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <SignUpButton mode="modal">
-                <button className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
-                  <span className="relative z-10 flex items-center">
-                    <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
-                    Start Free Trial
-                  </span>
-                  <div className="gradient-streak"></div>
-                </button>
-              </SignUpButton>
+              <Link href="/sign-up" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+                <span className="relative z-10 flex items-center">
+                  <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
+                  Start Free Trial
+                </span>
+                <div className="gradient-streak"></div>
+              </Link>
               
               <Link href="/features" className="btn-secondary text-xl px-8 py-4">
                 Schedule Demo
