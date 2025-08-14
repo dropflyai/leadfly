@@ -30,13 +30,6 @@ export default function PricingPage() {
     stripeId: plan.stripe_price_id
   }))
 
-  // Debug: Log the plans data to console to verify pricing data
-  if (typeof window !== 'undefined') {
-    console.log('Pricing plans data:', plans)
-    plans.forEach(plan => {
-      console.log(`${plan.name} - Monthly: $${plan.price.monthly}, Yearly: $${plan.price.yearly}`)
-    })
-  }
 
   const addons = [
     {
@@ -196,7 +189,7 @@ export default function PricingPage() {
                   <div className="gradient-streak"></div>
                   
                   <div className="text-center relative z-10">
-                    <h3 className="text-xl font-bold mb-2" style={{color: '#000000'}}>{plan.name}</h3>
+                    <h3 className="text-xl font-bold mb-2 text-dark-800">{plan.name}</h3>
                     
                     <div className="mb-6">
                       {plan.originalPrice && (
@@ -204,7 +197,7 @@ export default function PricingPage() {
                           Was ${plan.originalPrice[billingPeriod].toLocaleString()}/{billingPeriod === 'monthly' ? 'month' : 'year'}
                         </div>
                       )}
-                      <div className="text-4xl font-bold mb-2" style={{color: '#000000', fontWeight: '900', textShadow: '0 0 1px rgba(255,255,255,0.5)'}}>
+                      <div className="text-4xl font-bold mb-2 text-dark-800">
                         ${plan.price[billingPeriod] ? plan.price[billingPeriod].toLocaleString() : 'N/A'}
                       </div>
                       <div className="text-sm text-dark-600">
@@ -224,11 +217,11 @@ export default function PricingPage() {
                     
                     <div className="mb-6">
                       <div className="text-center">
-                        <div className="text-lg font-bold mb-1" style={{color: '#000000'}}>
+                        <div className="text-lg font-bold text-dark-800 mb-1">
                           {plan.leads.toLocaleString()} cold leads
                         </div>
                         <div className="text-xs text-dark-600 mb-2">↓ AI nurturing ↓</div>
-                        <div className="text-2xl font-bold mb-1" style={{color: '#0c93e3', fontWeight: '900'}}>
+                        <div className="text-2xl font-bold text-electric-600 mb-1">
                           {plan.warmLeads.toLocaleString()} warm calls
                         </div>
                         <div className="text-xs text-dark-600">qualified & ready</div>
