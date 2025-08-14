@@ -192,6 +192,15 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold mb-2 text-dark-800">{plan.name}</h3>
                     
                     <div className="mb-6">
+                      {/* Promotional Badge */}
+                      {plan.originalPrice && billingPeriod === 'monthly' && (
+                        <div className="flex justify-center mb-3">
+                          <div className="bg-neon-500/20 border border-neon-500/30 text-neon-600 px-3 py-1 rounded-full text-xs font-semibold shadow-neon">
+                            Save ${(plan.originalPrice[billingPeriod] - plan.price[billingPeriod]).toLocaleString()}!
+                          </div>
+                        </div>
+                      )}
+                      
                       {plan.originalPrice && (
                         <div className="text-sm text-dark-600 line-through mb-1">
                           Was ${plan.originalPrice[billingPeriod].toLocaleString()}/{billingPeriod === 'monthly' ? 'month' : 'year'}
@@ -203,11 +212,6 @@ export default function PricingPage() {
                       <div className="text-sm text-dark-600">
                         /{billingPeriod === 'monthly' ? 'month' : 'year'}
                       </div>
-                      {plan.originalPrice && (
-                        <div className="text-xs text-green-600 font-semibold mt-1">
-                          First month special: Save ${(plan.originalPrice[billingPeriod] - plan.price[billingPeriod]).toLocaleString()}!
-                        </div>
-                      )}
                       {billingPeriod === 'yearly' && (
                         <div className="text-xs text-neon-600 mt-1">
                           Save ${((plan.price.monthly * 12) - plan.price.yearly).toLocaleString()}
