@@ -1,0 +1,64 @@
+{
+  "name": "dropfly-leadfly",
+  "version": "1.0.0",
+  "description": "DropFly LeadFly - AI-Powered Lead Generation System",
+  "main": "enhanced-lead-api.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test-integration.js",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "deploy": "vercel --prod",
+    "generate-leads": "node -e \"import('./enhanced-lead-api.js').then(m => m.generateCompleteLeads('test-user', {job_titles: ['CEO']}, 5))\"",
+    "setup": "npm install && echo 'Setup complete! Run npm test to verify integration'",
+    "setup-n8n": "chmod +x scripts/setup-n8n-docker.sh && ./scripts/setup-n8n-docker.sh",
+    "deploy-workflows": "node scripts/deploy-n8n-workflows.js",
+    "test-automation": "node scripts/test-automation.js"
+  },
+  "dependencies": {
+    "@headlessui/react": "^1.7.17",
+    "@heroicons/react": "^2.0.18",
+    "@supabase/supabase-js": "^2.39.0",
+    "@tailwindcss/forms": "^0.5.10",
+    "autoprefixer": "^10.4.16",
+    "axios": "^1.6.0",
+    "chart.js": "^4.5.0",
+    "clsx": "^2.0.0",
+    "dotenv": "^17.2.1",
+    "lucide-react": "^0.292.0",
+    "next": "14.0.3",
+    "openai": "^4.20.0",
+    "postcss": "^8.4.32",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^18.2.0",
+    "stripe": "^14.25.0",
+    "tailwindcss": "^3.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "14.0.3",
+    "typescript": "^5.2.0"
+  },
+  "keywords": [
+    "lead-generation",
+    "ai",
+    "apollo",
+    "supabase",
+    "saas",
+    "automation",
+    "dropfly"
+  ],
+  "author": "DropFly Technologies",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dropfly/leadfly.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

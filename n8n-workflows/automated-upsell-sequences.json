@@ -1,0 +1,213 @@
+{
+  "name": "Automated Upsell Email Sequences",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upsell-trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Upsell Trigger Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "upsell-automation-trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.opportunity_type }}",
+              "rightValue": "usage_upgrade",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "usage-upgrade-check",
+      "name": "Usage Upgrade Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.opportunity_type }}",
+              "rightValue": "feature_upgrade",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "feature-upgrade-check",
+      "name": "Feature Upgrade Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.opportunity_type }}",
+              "rightValue": "tier_progression",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "success-milestone-check",
+      "name": "Success Milestone Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/profiles",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "email,full_name,subscription_tier_slug"
+            },
+            {
+              "name": "id",
+              "value": "eq.{{ $json.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "get-user-profile",
+      "name": "Get User Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Usage Upgrade Email Sequence\nconst opportunity = $input.first().json;\nconst profile = $input.last().json[0];\n\nconst utilization = opportunity.trigger_data?.utilization_percentage || 0;\nconst currentPlan = opportunity.current_plan;\nconst recommendedPlan = opportunity.recommended_plan;\n\n// Email sequence based on utilization level\nlet emailSequence = [];\n\nif (utilization >= 95) {\n  // Critical - Immediate action needed\n  emailSequence = [\n    {\n      delay: 0,\n      subject: `🚨 ${profile.full_name}, you've reached your ${currentPlan} plan limits`,\n      template: 'usage_critical_immediate',\n      urgency: 'critical'\n    },\n    {\n      delay: 1,\n      subject: `Avoid service disruption - Upgrade to ${recommendedPlan} now`,\n      template: 'usage_critical_followup',\n      urgency: 'critical'\n    },\n    {\n      delay: 3,\n      subject: `Last chance: 20% off ${recommendedPlan} upgrade`,\n      template: 'usage_critical_discount',\n      urgency: 'critical'\n    }\n  ];\n} else if (utilization >= 80) {\n  // High - Plan ahead\n  emailSequence = [\n    {\n      delay: 0,\n      subject: `${profile.full_name}, you're approaching your ${currentPlan} limits`,\n      template: 'usage_high_warning',\n      urgency: 'high'\n    },\n    {\n      delay: 3,\n      subject: `Unlock more capacity with ${recommendedPlan}`,\n      template: 'usage_high_benefits',\n      urgency: 'high'\n    },\n    {\n      delay: 7,\n      subject: `See how ${recommendedPlan} customers achieve 40% better results`,\n      template: 'usage_high_social_proof',\n      urgency: 'high'\n    }\n  ];\n}\n\nreturn emailSequence.map((email, index) => ({\n  ...email,\n  user_id: opportunity.user_id,\n  opportunity_id: opportunity.id,\n  email: profile.email,\n  full_name: profile.full_name,\n  current_plan: currentPlan,\n  recommended_plan: recommendedPlan,\n  utilization: utilization,\n  potential_savings: opportunity.potential_arr_increase,\n  sequence_step: index + 1\n}));"
+      },
+      "id": "usage-email-sequence",
+      "name": "Usage Email Sequence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Feature Request Email Sequence\nconst opportunity = $input.first().json;\nconst profile = $input.last().json[0];\n\nconst featureName = opportunity.trigger_data?.feature_name || 'advanced features';\nconst urgencyLevel = opportunity.trigger_data?.urgency_level || 'medium';\nconst currentPlan = opportunity.current_plan;\nconst recommendedPlan = opportunity.recommended_plan;\n\n// Email sequence based on feature request urgency\nlet emailSequence = [];\n\nif (urgencyLevel === 'critical') {\n  emailSequence = [\n    {\n      delay: 0,\n      subject: `${featureName} is available now in ${recommendedPlan}`,\n      template: 'feature_critical_immediate',\n      urgency: 'critical'\n    },\n    {\n      delay: 1,\n      subject: `Urgent: Unlock ${featureName} to unblock your operations`,\n      template: 'feature_critical_unblock',\n      urgency: 'critical'\n    }\n  ];\n} else if (urgencyLevel === 'high') {\n  emailSequence = [\n    {\n      delay: 0,\n      subject: `Good news! ${featureName} is ready for you`,\n      template: 'feature_high_available',\n      urgency: 'high'\n    },\n    {\n      delay: 2,\n      subject: `See ${featureName} in action (live demo)`,\n      template: 'feature_high_demo',\n      urgency: 'high'\n    },\n    {\n      delay: 5,\n      subject: `${recommendedPlan} customers save 40% more time`,\n      template: 'feature_high_benefits',\n      urgency: 'high'\n    }\n  ];\n} else {\n  emailSequence = [\n    {\n      delay: 0,\n      subject: `Your ${featureName} request: Here's what's possible`,\n      template: 'feature_medium_overview',\n      urgency: 'medium'\n    },\n    {\n      delay: 7,\n      subject: `Customer story: How ${featureName} drove 200% growth`,\n      template: 'feature_medium_case_study',\n      urgency: 'medium'\n    },\n    {\n      delay: 14,\n      subject: `Ready to unlock ${featureName}?`,\n      template: 'feature_medium_closing',\n      urgency: 'medium'\n    }\n  ];\n}\n\nreturn emailSequence.map((email, index) => ({\n  ...email,\n  user_id: opportunity.user_id,\n  opportunity_id: opportunity.id,\n  email: profile.email,\n  full_name: profile.full_name,\n  feature_name: featureName,\n  current_plan: currentPlan,\n  recommended_plan: recommendedPlan,\n  urgency_level: urgencyLevel,\n  potential_value: opportunity.potential_arr_increase,\n  sequence_step: index + 1\n}));"
+      },
+      "id": "feature-email-sequence",
+      "name": "Feature Email Sequence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Success Milestone Email Sequence\nconst opportunity = $input.first().json;\nconst profile = $input.last().json[0];\n\nconst milestoneType = opportunity.trigger_data?.milestone_type || 'success achievement';\nconst milestoneValue = opportunity.trigger_data?.milestone_value || 0;\nconst currentPlan = opportunity.current_plan;\nconst recommendedPlan = opportunity.recommended_plan;\n\n// Celebration and progression sequence\nconst emailSequence = [\n  {\n    delay: 0,\n    subject: `🎉 Congratulations ${profile.full_name}! Amazing ${milestoneType}`,\n    template: 'success_celebration',\n    urgency: 'high'\n  },\n  {\n    delay: 1,\n    subject: `You're ready for the next level: ${recommendedPlan}`,\n    template: 'success_progression_ready',\n    urgency: 'high'\n  },\n  {\n    delay: 3,\n    subject: `Exclusive offer: 25% off ${recommendedPlan} for top performers`,\n    template: 'success_exclusive_offer',\n    urgency: 'high'\n  },\n  {\n    delay: 7,\n    subject: `Join other successful customers in ${recommendedPlan}`,\n    template: 'success_peer_validation',\n    urgency: 'medium'\n  }\n];\n\nreturn emailSequence.map((email, index) => ({\n  ...email,\n  user_id: opportunity.user_id,\n  opportunity_id: opportunity.id,\n  email: profile.email,\n  full_name: profile.full_name,\n  milestone_type: milestoneType,\n  milestone_value: milestoneValue,\n  current_plan: currentPlan,\n  recommended_plan: recommendedPlan,\n  achievement_level: 'top_performer',\n  sequence_step: index + 1\n}));"
+      },
+      "id": "success-email-sequence",
+      "name": "Success Email Sequence",\n      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "operation": "split",
+        "options": {}
+      },
+      "id": "split-email-sequence",
+      "name": "Split Email Sequence",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delay }}",
+        "unit": "days"
+      },
+      "id": "email-delay",
+      "name": "Email Delay",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailData = $json;\n\n// Email template library\nconst templates = {\n  // Usage Critical Templates\n  usage_critical_immediate: {\n    subject: `🚨 ${emailData.full_name}, you've reached your ${emailData.current_plan} plan limits`,\n    html: `\n      <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n        <div style=\"background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 20px; text-align: center;\">\n          <h1 style=\"margin: 0; font-size: 24px;\">⚠️ Action Required</h1>\n          <p style=\"margin: 10px 0 0 0; font-size: 16px;\">You've reached ${emailData.utilization}% of your plan capacity</p>\n        </div>\n        \n        <div style=\"padding: 30px; background: white;\">\n          <p>Hi ${emailData.full_name},</p>\n          \n          <p>Your account has reached <strong>${emailData.utilization}%</strong> of your ${emailData.current_plan} plan limits. To avoid any service disruption, we recommend upgrading to ${emailData.recommended_plan} immediately.</p>\n          \n          <div style=\"background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;\">\n            <strong>Why upgrade now?</strong>\n            <ul>\n              <li>Avoid hitting plan limits and service interruptions</li>\n              <li>Get 4x more capacity with ${emailData.recommended_plan}</li>\n              <li>Unlock advanced features for better results</li>\n              <li>Save $${Math.round(emailData.potential_savings/12)} per month vs. overage fees</li>\n            </ul>\n          </div>\n          \n          <div style=\"text-align: center; margin: 30px 0;\">\n            <a href=\"https://leadfly-ai.com/upgrade?plan=${emailData.recommended_plan}&utm_source=email&utm_campaign=usage_critical\" \n               style=\"background: #ef4444; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;\">\n              Upgrade to ${emailData.recommended_plan} Now\n            </a>\n          </div>\n          \n          <p>Need help? Reply to this email or <a href=\"https://leadfly-ai.com/support\">contact our team</a>.</p>\n          \n          <p>Best regards,<br>The LeadFly AI Team</p>\n        </div>\n      </div>\n    `\n  },\n  \n  // Feature Request Templates\n  feature_high_available: {\n    subject: `Good news! ${emailData.feature_name} is ready for you`,\n    html: `\n      <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n        <div style=\"background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 20px; text-align: center;\">\n          <h1 style=\"margin: 0; font-size: 24px;\">🎉 Your Feature is Ready!</h1>\n          <p style=\"margin: 10px 0 0 0; font-size: 16px;\">${emailData.feature_name} is now available</p>\n        </div>\n        \n        <div style=\"padding: 30px; background: white;\">\n          <p>Hi ${emailData.full_name},</p>\n          \n          <p>Great news! The <strong>${emailData.feature_name}</strong> feature you requested is available in our ${emailData.recommended_plan} plan.</p>\n          \n          <div style=\"background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;\">\n            <strong>What you'll get with ${emailData.recommended_plan}:</strong>\n            <ul>\n              <li>✅ ${emailData.feature_name} (your requested feature)</li>\n              <li>✅ Advanced AI capabilities</li>\n              <li>✅ Priority customer support</li>\n              <li>✅ Enhanced analytics and reporting</li>\n              <li>✅ Additional integrations</li>\n            </ul>\n          </div>\n          \n          <div style=\"text-align: center; margin: 30px 0;\">\n            <a href=\"https://leadfly-ai.com/upgrade?plan=${emailData.recommended_plan}&utm_source=email&utm_campaign=feature_request\" \n               style=\"background: #3b82f6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;\">\n              Unlock ${emailData.feature_name} Now\n            </a>\n          </div>\n          \n          <p>Want to see it in action first? <a href=\"https://leadfly-ai.com/demo\">Book a personalized demo</a>.</p>\n          \n          <p>Best regards,<br>The LeadFly AI Team</p>\n        </div>\n      </div>\n    `\n  },\n  \n  // Success Milestone Templates\n  success_celebration: {\n    subject: `🎉 Congratulations ${emailData.full_name}! Amazing ${emailData.milestone_type}`,\n    html: `\n      <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n        <div style=\"background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 20px; text-align: center;\">\n          <h1 style=\"margin: 0; font-size: 24px;\">🎉 Congratulations!</h1>\n          <p style=\"margin: 10px 0 0 0; font-size: 16px;\">You've achieved an amazing milestone</p>\n        </div>\n        \n        <div style=\"padding: 30px; background: white;\">\n          <p>Hi ${emailData.full_name},</p>\n          \n          <p>Congratulations on achieving your <strong>${emailData.milestone_type}</strong>! This puts you in the top 10% of LeadFly AI users.</p>\n          \n          <div style=\"background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;\">\n            <strong>Your Achievement:</strong>\n            <p style=\"margin: 5px 0; font-size: 18px; font-weight: bold;\">${emailData.milestone_value || 'Outstanding results'}</p>\n            <p style=\"margin: 5px 0;\">This level of success shows you're ready for our ${emailData.recommended_plan} plan.</p>\n          </div>\n          \n          <p>Based on your success, customers like you typically see even better results with ${emailData.recommended_plan}:</p>\n          <ul>\n            <li>40% higher ROI on average</li>\n            <li>Advanced features that scale with your growth</li>\n            <li>Priority support from our success team</li>\n            <li>Exclusive access to new capabilities</li>\n          </ul>\n          \n          <div style=\"text-align: center; margin: 30px 0;\">\n            <a href=\"https://leadfly-ai.com/upgrade?plan=${emailData.recommended_plan}&utm_source=email&utm_campaign=success_milestone\" \n               style=\"background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;\">\n              Unlock ${emailData.recommended_plan} Success\n            </a>\n          </div>\n          \n          <p>Keep up the amazing work!</p>\n          \n          <p>Best regards,<br>The LeadFly AI Team</p>\n        </div>\n      </div>\n    `\n  }\n};\n\n// Get template or use default\nconst template = templates[emailData.template] || templates.usage_critical_immediate;\n\nreturn {\n  to: emailData.email,\n  subject: template.subject,\n  html: template.html,\n  user_id: emailData.user_id,\n  opportunity_id: emailData.opportunity_id,\n  campaign_type: emailData.template,\n  sequence_step: emailData.sequence_step\n};"
+      },
+      "id": "generate-email-content",
+      "name": "Generate Email Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "success@leadfly-ai.com",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}\n      },\n      "id": "send-email",\n      "name": "Send Email",\n      "type": "n8n-nodes-base.emailSend",\n      "typeVersion": 2,\n      "position": [1780, 300]\n    },\n    {\n      "parameters": {\n        "method": "POST",\n        "url": "={{ $env.SUPABASE_URL }}/rest/v1/upsell_interactions",\n        "authentication": "predefinedCredentialType",\n        "nodeCredentialType": "supabaseApi",\n        "sendHeaders": true,\n        "headerParameters": {\n          "parameters": [\n            {\n              "name": "apikey",\n              "value": "={{ $env.SUPABASE_ANON_KEY }}"\n            },\n            {\n              "name": "Authorization",\n              "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"\n            },\n            {\n              "name": "Content-Type",\n              "value": "application/json"\n            }\n          ]\n        },\n        "sendBody": true,\n        "bodyParameters": {\n          "parameters": [\n            {\n              "name": "user_id",\n              "value": "={{ $json.user_id }}"\n            },\n            {\n              "name": "expansion_opportunity_id",\n              "value": "={{ $json.opportunity_id }}"\n            },\n            {\n              "name": "interaction_type",\n              "value": "email_sent"\n            },\n            {\n              "name": "interaction_medium",\n              "value": "email"\n            },\n            {\n              "name": "subject_line",\n              "value": "={{ $json.subject }}"\n            },\n            {\n              "name": "message_content",\n              "value": "Automated upsell email sent"\n            },\n            {\n              "name": "interaction_data",\n              "value": "={{ JSON.stringify({ campaign_type: $json.campaign_type, sequence_step: $json.sequence_step }) }}"\n            },\n            {\n              "name": "performed_by",\n              "value": "System - Automated Sequence"\n            }\n          ]\n        }\n      },\n      "id": "log-interaction",\n      "name": "Log Interaction",\n      "type": "n8n-nodes-base.httpRequest",\n      "typeVersion": 4.2,\n      "position": [2000, 300]\n    },\n    {\n      "parameters": {\n        "respondWith": "json",\n        "responseBody": "={{ JSON.stringify({ success: true, message: 'Upsell sequence initiated', sequences_created: $json.length || 1 }) }}"\n      },\n      "id": "response",\n      "name": "Response",\n      "type": "n8n-nodes-base.respondToWebhook",\n      "typeVersion": 1,\n      "position": [2220, 300]\n    }\n  ],\n  "pinData": {},\n  "connections": {\n    "webhook-trigger": {\n      "main": [\n        [\n          {\n            "node": "usage-upgrade-check",\n            "type": "main",\n            "index": 0\n          },\n          {\n            "node": "feature-upgrade-check",\n            "type": "main",\n            "index": 0\n          },\n          {\n            "node": "success-milestone-check",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "usage-upgrade-check": {\n      "main": [\n        [\n          {\n            "node": "get-user-profile",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "feature-upgrade-check": {\n      "main": [\n        [\n          {\n            "node": "get-user-profile",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "success-milestone-check": {\n      "main": [\n        [\n          {\n            "node": "get-user-profile",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "get-user-profile": {\n      "main": [\n        [\n          {\n            "node": "usage-email-sequence",\n            "type": "main",\n            "index": 0\n          },\n          {\n            "node": "feature-email-sequence",\n            "type": "main",\n            "index": 0\n          },\n          {\n            "node": "success-email-sequence",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "usage-email-sequence": {\n      "main": [\n        [\n          {\n            "node": "split-email-sequence",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "feature-email-sequence": {\n      "main": [\n        [\n          {\n            "node": "split-email-sequence",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "success-email-sequence": {\n      "main": [\n        [\n          {\n            "node": "split-email-sequence",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "split-email-sequence": {\n      "main": [\n        [\n          {\n            "node": "email-delay",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "email-delay": {\n      "main": [\n        [\n          {\n            "node": "generate-email-content",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "generate-email-content": {\n      "main": [\n        [\n          {\n            "node": "send-email",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "send-email": {\n      "main": [\n        [\n          {\n            "node": "log-interaction",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    },\n    "log-interaction": {\n      "main": [\n        [\n          {\n            "node": "response",\n            "type": "main",\n            "index": 0\n          }\n        ]\n      ]\n    }\n  },\n  "active": true,\n  "settings": {\n    "executionOrder": "v1"\n  },\n  "versionId": "1",\n  "meta": {\n    "templateCredsSetupCompleted": true,\n    "instanceId": "leadfly-ai-upsell-automation"\n  },\n  "id": "automated-upsell-sequences",\n  "tags": [\n    {\n      "createdAt": "2024-01-01T00:00:00.000Z",\n      "updatedAt": "2024-01-01T00:00:00.000Z",\n      "id": "upsell-automation",\n      "name": "Upsell Automation"\n    }\n  ]\n}

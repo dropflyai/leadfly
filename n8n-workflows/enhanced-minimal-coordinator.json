@@ -1,0 +1,315 @@
+{
+  "name": "LeadFly AI - Enhanced RAG Coordinator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/enhanced-coordinator",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "id": "enhanced-webhook",
+      "name": "Enhanced Webhook Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced input processing and validation\nconst inputData = $json;\n\n// Extract and validate input\nconst userId = inputData.user_id || 'anonymous';\nconst leadId = inputData.lead_id || null;\nconst taskType = inputData.task_type || 'lead_qualification';\nconst leadData = inputData.lead_data || {};\nconst query = inputData.query || inputData.message || '';\n\n// Prepare data for embedding and vector search\nconst searchQuery = query || `${leadData.company || ''} ${leadData.industry || ''} ${leadData.title || ''} lead qualification`;\n\n// Create session ID for memory management\nconst sessionId = leadId ? `${userId}_${leadId}` : `${userId}_${Date.now()}`;\n\n// Prepare metadata for embeddings\nconst metadata = {\n  user_id: userId,\n  lead_id: leadId,\n  source: inputData.source || 'api',\n  timestamp: new Date().toISOString(),\n  lead_score: leadData.score || null,\n  company: leadData.company || null,\n  industry: leadData.industry || null\n};\n\nreturn {\n  ...inputData,\n  processed_query: searchQuery,\n  session_id: sessionId,\n  metadata: metadata,\n  embedding_text: searchQuery,\n  processing_stage: 'input_validated'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "input-processor",
+      "name": "Input Processor"
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {
+          "dimensions": 1536
+        }
+      },
+      "type": "n8n-nodes-langchain.embeddingsopenai",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "openai-embeddings",
+      "name": "OpenAI Embeddings",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_api_key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Get Many",
+        "prompt": "={{$json.processed_query}}",
+        "options": {
+          "metadata": "={{JSON.stringify($json.metadata)}}",
+          "limit": 10
+        }
+      },
+      "type": "n8n-nodes-langchain.vectorstoresupabase",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "id": "supabase-vector-search",
+      "name": "Supabase Vector Search",
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase_api_key",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionId": "={{$json.session_id}}",
+        "tableName": "conversation_memory"
+      },
+      "type": "n8n-nodes-langchain.memorypostgreschat",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "id": "postgres-memory",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "supabase_postgres",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000,
+          "systemMessage": "You are LeadFly AI, an expert lead qualification and sales intelligence agent.\n\nYour mission: Analyze leads and provide actionable insights for sales teams.\n\nCapabilities:\n- Access to company research and industry data via vector search\n- Conversation history and context awareness\n- Lead scoring and qualification recommendations\n- Competitive intelligence and market insights\n- Email personalization and content generation\n\nWhen analyzing leads:\n1. Use vector search results to understand company context\n2. Leverage conversation history for personalization\n3. Provide specific, actionable recommendations\n4. Include confidence scores for your assessments\n5. Suggest next best actions for sales teams\n\nAlways respond in JSON format with:\n- analysis: Your detailed analysis\n- lead_score: Score from 0-100\n- recommendations: Array of specific actions\n- confidence: Your confidence level (0-1)\n- next_actions: Prioritized list of next steps"
+        }
+      },
+      "type": "n8n-nodes-langchain.lmchatopenai",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "id": "enhanced-ai-agent",
+      "name": "Enhanced AI Agent",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_api_key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI response and prepare final output\nconst aiResponse = $json.text || $json.response || '';\nconst inputData = $('Input Processor').first().json;\nconst vectorResults = $('Supabase Vector Search').all();\n\n// Parse AI response if it's JSON\nlet analysis = {};\ntry {\n  analysis = JSON.parse(aiResponse);\n} catch (e) {\n  analysis = {\n    analysis: aiResponse,\n    lead_score: 75,\n    confidence: 0.8,\n    recommendations: ['Follow up within 24 hours'],\n    next_actions: ['Send personalized email']\n  };\n}\n\n// Enhance with vector search context\nconst contextDocuments = vectorResults.map(result => ({\n  content: result.pageContent || result.content,\n  metadata: result.metadata,\n  score: result.score\n}));\n\n// Prepare comprehensive response\nconst finalResponse = {\n  success: true,\n  user_id: inputData.user_id,\n  lead_id: inputData.lead_id,\n  session_id: inputData.session_id,\n  processing_stage: 'complete',\n  \n  // AI Analysis Results\n  ai_analysis: {\n    ...analysis,\n    processing_time_ms: Date.now() - new Date(inputData.metadata.timestamp).getTime()\n  },\n  \n  // Vector Search Context\n  knowledge_context: {\n    documents_found: contextDocuments.length,\n    relevance_scores: contextDocuments.map(d => d.score),\n    top_contexts: contextDocuments.slice(0, 3)\n  },\n  \n  // Enhanced Recommendations\n  enhanced_recommendations: {\n    lead_qualification: analysis.lead_score || 75,\n    confidence_level: analysis.confidence || 0.8,\n    priority_actions: analysis.next_actions || [],\n    personalization_data: {\n      company_insights: contextDocuments.filter(d => d.metadata?.type === 'company_research'),\n      industry_trends: contextDocuments.filter(d => d.metadata?.type === 'industry_data'),\n      competitive_intel: contextDocuments.filter(d => d.metadata?.type === 'competitive_analysis')\n    }\n  },\n  \n  // System Performance\n  performance_metrics: {\n    vector_search_results: vectorResults.length,\n    embedding_dimensions: 1536,\n    memory_context_loaded: true,\n    processing_complete: true\n  },\n  \n  timestamp: new Date().toISOString()\n};\n\nreturn finalResponse;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "id": "response-processor",
+      "name": "Response Processor"
+    },
+    {
+      "parameters": {
+        "operation": "Insert Documents",
+        "document": "={{$json.processed_query}}",
+        "options": {
+          "metadata": "={{JSON.stringify({\n  user_id: $json.user_id,\n  lead_id: $json.lead_id,\n  type: 'lead_interaction',\n  timestamp: $json.metadata.timestamp,\n  lead_score: $json.ai_analysis?.lead_score || null\n})}}"
+        }
+      },
+      "type": "n8n-nodes-langchain.vectorstoresupabase",
+      "typeVersion": 1,
+      "position": [1340, 500],
+      "id": "supabase-vector-store",
+      "name": "Store Interaction",
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase_api_key",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json, null, 2)}}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "id": "webhook-response",
+      "name": "Webhook Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.lead_id}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 500],
+      "id": "has-lead-id",
+      "name": "Has Lead ID?"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "insert",
+        "tableId": "leads",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "id",
+              "fieldValue": "={{$json.lead_id}}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{$json.user_id}}"
+            },
+            {
+              "fieldId": "ai_analysis",
+              "fieldValue": "={{JSON.stringify($json.ai_analysis)}}"
+            },
+            {
+              "fieldId": "knowledge_context",
+              "fieldValue": "={{JSON.stringify($json.knowledge_context)}}"
+            },
+            {
+              "fieldId": "updated_at",
+              "fieldValue": "={{$json.timestamp}}"
+            }
+          ]
+        },
+        "options": {
+          "upsert": true
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 700],
+      "id": "update-lead-record",
+      "name": "Update Lead Record",
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase_api_key",
+          "name": "Supabase API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Enhanced Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Processor": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Embeddings": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Search": {
+      "main": [
+        [
+          {
+            "node": "Postgres Chat Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "main": [
+        [
+          {
+            "node": "Enhanced AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enhanced AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Response Processor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Lead ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Processor": {
+      "main": [
+        [
+          {
+            "node": "Store Interaction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Lead ID?": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

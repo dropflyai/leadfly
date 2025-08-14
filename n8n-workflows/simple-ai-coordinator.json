@@ -1,0 +1,145 @@
+{
+  "name": "LeadFly AI - Simple Coordinator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/simple-ai-coordinator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "simple-ai-webhook",
+      "name": "Simple AI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "leadfly-simple-ai-coordinator"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Simple AI coordination logic\nconst inputData = $json;\nconst taskType = inputData.task_type || 'unknown';\nconst userId = inputData.user_id || 'anonymous';\n\n// Route tasks based on type\nlet response = {\n  success: true,\n  task_type: taskType,\n  user_id: userId,\n  processing_method: 'simple_coordination',\n  timestamp: new Date().toISOString()\n};\n\nswitch(taskType) {\n  case 'lead_processing':\n    response.next_action = 'process_lead';\n    response.agent_used = 'lead_processor';\n    break;\n  case 'document_processing':\n    response.next_action = 'process_document';\n    response.agent_used = 'document_processor';\n    break;\n  case 'email_formatting':\n    response.next_action = 'format_email';\n    response.agent_used = 'email_formatter';\n    break;\n  default:\n    response.next_action = 'general_processing';\n    response.agent_used = 'general_processor';\n}\n\n// Add lead data if provided\nif (inputData.lead_data) {\n  response.lead_data = inputData.lead_data;\n  response.lead_validation = {\n    has_email: !!inputData.lead_data.email,\n    has_name: !!(inputData.lead_data.first_name || inputData.lead_data.name),\n    has_company: !!inputData.lead_data.company\n  };\n}\n\nreturn response;"
+      },
+      "id": "simple-ai-processor",
+      "name": "Simple AI Processor",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-processor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "ai_coordination"
+            },
+            {
+              "name": "task_type",
+              "value": "={{$json.task_type}}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{$json.user_id}}"
+            },
+            {
+              "name": "coordination_result",
+              "value": "={{$json}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "call-leadfly-api",
+      "name": "Call LeadFly API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success || true,\n  coordination_complete: true,\n  task_type: $json.task_type,\n  next_action: $json.next_action,\n  agent_used: $json.agent_used,\n  processing_method: 'simple_ai_coordination',\n  timestamp: new Date().toISOString()\n})}}"
+      },
+      "id": "respond-simple-webhook",
+      "name": "Respond Simple Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Simple AI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Simple AI Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple AI Processor": {
+      "main": [
+        [
+          {
+            "node": "Call LeadFly API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LeadFly API": {
+      "main": [
+        [
+          {
+            "node": "Respond Simple Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-simple-ai-coordinator",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "ai-simple",
+      "name": "ai-simple"
+    }
+  ]
+}

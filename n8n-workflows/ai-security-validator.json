@@ -1,0 +1,507 @@
+{
+  "name": "LeadFly AI - Security Validator Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/ai-security-validator",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "security-validator-webhook",
+      "name": "Security Validator Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 360],
+      "webhookId": "leadfly-ai-security-validator"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 2000
+        }
+      },
+      "id": "ai-security-agent",
+      "name": "AI Security Agent",
+      "type": "n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [480, 360],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "authentication_validator",
+        "description": "Validates API keys, tokens, and user authentication credentials"
+      },
+      "id": "authentication-validator-tool",
+      "name": "Authentication Validator Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "name": "permission_checker",
+        "description": "Checks user permissions and access levels for requested operations"
+      },
+      "id": "permission-checker-tool",
+      "name": "Permission Checker Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "name": "data_sanitizer",
+        "description": "Sanitizes input data to prevent XSS, SQL injection, and other security threats"
+      },
+      "id": "data-sanitizer-tool",
+      "name": "Data Sanitizer Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 280]
+    },
+    {
+      "parameters": {
+        "name": "compliance_checker",
+        "description": "Ensures operations comply with GDPR, CCPA, TCPA, and other regulations"
+      },
+      "id": "compliance-checker-tool",
+      "name": "Compliance Checker Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 440]
+    },
+    {
+      "parameters": {
+        "chatMessages": [
+          {
+            "role": "system",
+            "content": "You are the Security Validation AI Agent for LeadFly's lead generation system. Your role is to ensure all operations meet security standards and regulatory compliance requirements.\n\nCore Responsibilities:\n1. Authentication: Validate API keys, tokens, and user credentials\n2. Authorization: Check user permissions and access levels\n3. Data Protection: Sanitize inputs and protect sensitive information\n4. Compliance: Ensure GDPR, CCPA, TCPA, and CAN-SPAM compliance\n5. Threat Detection: Identify and prevent security threats\n\nTools Available:\n- authentication_validator: Validates API keys and authentication tokens\n- permission_checker: Verifies user permissions for requested operations\n- data_sanitizer: Cleans and sanitizes input data\n- compliance_checker: Ensures regulatory compliance\n\nSecurity Standards:\n- All API keys must be valid and not expired\n- Users must have appropriate permissions for requested operations\n- Personal data must be handled according to privacy regulations\n- Email communications must comply with anti-spam laws\n- Document processing must maintain data privacy\n\nCompliance Requirements:\n- GDPR: User consent, data minimization, right to deletion\n- CCPA: Privacy notices, opt-out mechanisms\n- TCPA: Consent for automated communications\n- CAN-SPAM: Unsubscribe links, sender identification\n\nThreat Prevention:\n- XSS protection for all user inputs\n- SQL injection prevention\n- Rate limiting for API access\n- Suspicious activity monitoring\n- Data encryption in transit and at rest"
+          },
+          {
+            "role": "user",
+            "content": "Validate security for operation: {{$json.operation_type || 'unknown'}}. User ID: {{$json.user_id || 'anonymous'}}. API Key: {{$json.api_key ? '[REDACTED]' : 'missing'}}. Data: {{JSON.stringify($json.validation_data || {})}}"
+          }
+        ]
+      },
+      "id": "ai-security-chat",
+      "name": "AI Security Chat",
+      "type": "n8n-nodes-langchain.chatOpenAi",
+      "typeVersion": 1,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Authentication validation and API key verification\nconst securityData = $json;\nconst apiKey = securityData.api_key;\nconst userId = securityData.user_id;\nconst operationType = securityData.operation_type;\n\n// API Key validation patterns\nfunction validateApiKey(key) {\n  if (!key) {\n    return { valid: false, reason: 'missing_api_key' };\n  }\n  \n  // Check key format\n  if (!/^sk-leadfly-[a-zA-Z0-9]{32,}$/.test(key)) {\n    return { valid: false, reason: 'invalid_key_format' };\n  }\n  \n  // Check against known test/placeholder keys\n  const testKeys = [\n    'sk-leadfly-placeholder-key',\n    'sk-leadfly-test-key',\n    'sk-leadfly-api-key-placeholder-for-testing'\n  ];\n  \n  if (testKeys.includes(key)) {\n    return { valid: true, reason: 'test_key', environment: 'test' };\n  }\n  \n  // For production, would validate against database\n  // Here we simulate validation\n  return { valid: true, reason: 'valid_production_key', environment: 'production' };\n}\n\n// User ID validation\nfunction validateUserId(userId) {\n  if (!userId || userId === 'anonymous') {\n    return { valid: false, reason: 'missing_user_id' };\n  }\n  \n  // Check format (UUID or similar)\n  if (!/^[a-zA-Z0-9_-]{8,}$/.test(userId)) {\n    return { valid: false, reason: 'invalid_user_id_format' };\n  }\n  \n  return { valid: true };\n}\n\n// Rate limiting check\nfunction checkRateLimit(userId, operationType) {\n  // Simulate rate limit checking\n  const rateLimits = {\n    'lead_processing': 100, // per hour\n    'document_processing': 50,\n    'email_formatting': 200,\n    'data_extraction': 75\n  };\n  \n  const limit = rateLimits[operationType] || 50;\n  const currentUsage = Math.floor(Math.random() * limit * 0.8); // Simulate current usage\n  \n  return {\n    within_limit: currentUsage < limit,\n    current_usage: currentUsage,\n    limit: limit,\n    remaining: limit - currentUsage\n  };\n}\n\n// IP validation and geolocation\nfunction validateIpAddress(ipAddress) {\n  if (!ipAddress || ipAddress === 'unknown') {\n    return { valid: false, reason: 'missing_ip_address', risk_level: 'medium' };\n  }\n  \n  // Check for known malicious IP patterns\n  const maliciousPatterns = [\n    /^10\\.0\\.0\\./,  // Private networks (for demo)\n    /^192\\.168\\./,\n    /^172\\.16\\./\n  ];\n  \n  const isMalicious = maliciousPatterns.some(pattern => pattern.test(ipAddress));\n  \n  return {\n    valid: !isMalicious,\n    reason: isMalicious ? 'suspicious_ip' : 'valid_ip',\n    risk_level: isMalicious ? 'high' : 'low',\n    location: 'US' // Simulate geolocation\n  };\n}\n\n// Perform validations\nconst apiKeyValidation = validateApiKey(apiKey);\nconst userIdValidation = validateUserId(userId);\nconst rateLimitCheck = checkRateLimit(userId, operationType);\nconst ipValidation = validateIpAddress(securityData.ip_address);\n\n// Calculate overall security score\nlet securityScore = 100;\nif (!apiKeyValidation.valid) securityScore -= 40;\nif (!userIdValidation.valid) securityScore -= 30;\nif (!rateLimitCheck.within_limit) securityScore -= 20;\nif (ipValidation.risk_level === 'high') securityScore -= 30;\nif (ipValidation.risk_level === 'medium') securityScore -= 15;\n\n// Determine authentication status\nconst isAuthenticated = apiKeyValidation.valid && userIdValidation.valid;\nconst riskLevel = securityScore >= 80 ? 'low' : securityScore >= 60 ? 'medium' : 'high';\n\nreturn [{\n  json: {\n    authentication_validated: true,\n    is_authenticated: isAuthenticated,\n    security_score: securityScore,\n    risk_level: riskLevel,\n    api_key_validation: {\n      valid: apiKeyValidation.valid,\n      reason: apiKeyValidation.reason,\n      environment: apiKeyValidation.environment\n    },\n    user_validation: {\n      valid: userIdValidation.valid,\n      reason: userIdValidation.reason\n    },\n    rate_limit_status: rateLimitCheck,\n    ip_validation: ipValidation,\n    timestamp: new Date().toISOString(),\n    requires_additional_verification: securityScore < 70\n  }\n}];"
+      },
+      "id": "authentication-validation",
+      "name": "Authentication Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Permission checking and authorization\nconst authData = $json;\nconst operationType = authData.operation_type || 'unknown';\nconst userId = authData.user_id;\nconst securityScore = authData.security_score || 0;\n\n// Define permission levels\nconst permissionLevels = {\n  'basic': 1,\n  'premium': 2,\n  'enterprise': 3,\n  'admin': 4\n};\n\n// Define operation requirements\nconst operationRequirements = {\n  'lead_processing': {\n    min_level: 1,\n    permissions: ['read_leads', 'create_leads'],\n    data_access: ['basic_lead_data']\n  },\n  'document_processing': {\n    min_level: 2,\n    permissions: ['read_documents', 'process_documents'],\n    data_access: ['document_content', 'extracted_data']\n  },\n  'email_formatting': {\n    min_level: 1,\n    permissions: ['send_emails', 'format_emails'],\n    data_access: ['email_templates', 'personalization_data']\n  },\n  'bulk_operations': {\n    min_level: 3,\n    permissions: ['bulk_processing', 'export_data'],\n    data_access: ['full_database_access']\n  },\n  'admin_operations': {\n    min_level: 4,\n    permissions: ['admin_access', 'system_management'],\n    data_access: ['all_data', 'system_logs']\n  }\n};\n\n// Simulate user permission lookup\nfunction getUserPermissions(userId) {\n  // In production, this would query the user database\n  const userPermissions = {\n    level: 'premium', // Simulate user level\n    permissions: [\n      'read_leads', 'create_leads', 'update_leads',\n      'read_documents', 'process_documents',\n      'send_emails', 'format_emails'\n    ],\n    data_access: [\n      'basic_lead_data', 'document_content', \n      'extracted_data', 'email_templates', \n      'personalization_data'\n    ],\n    subscription_tier: 'growth',\n    account_status: 'active',\n    last_login: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()\n  };\n  \n  return userPermissions;\n}\n\n// Check if user has required permissions\nfunction checkPermissions(userPerms, requiredPerms) {\n  const hasLevel = permissionLevels[userPerms.level] >= requiredPerms.min_level;\n  const hasPermissions = requiredPerms.permissions.every(perm => \n    userPerms.permissions.includes(perm)\n  );\n  const hasDataAccess = requiredPerms.data_access.every(access => \n    userPerms.data_access.includes(access)\n  );\n  \n  return {\n    authorized: hasLevel && hasPermissions && hasDataAccess,\n    missing_permissions: requiredPerms.permissions.filter(perm => \n      !userPerms.permissions.includes(perm)\n    ),\n    missing_data_access: requiredPerms.data_access.filter(access => \n      !userPerms.data_access.includes(access)\n    ),\n    level_sufficient: hasLevel\n  };\n}\n\n// Additional security checks\nfunction performSecurityChecks(authData, userPerms) {\n  const checks = {\n    account_active: userPerms.account_status === 'active',\n    recent_login: new Date(userPerms.last_login) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),\n    security_score_adequate: authData.security_score >= 60,\n    rate_limit_ok: authData.rate_limit_status?.within_limit !== false,\n    ip_trusted: authData.ip_validation?.risk_level !== 'high'\n  };\n  \n  const allChecksPassed = Object.values(checks).every(check => check === true);\n  \n  return {\n    all_passed: allChecksPassed,\n    individual_checks: checks,\n    failed_checks: Object.keys(checks).filter(key => checks[key] === false)\n  };\n}\n\n// Perform authorization checks\nconst userPermissions = getUserPermissions(userId);\nconst requiredPermissions = operationRequirements[operationType] || operationRequirements['lead_processing'];\nconst permissionCheck = checkPermissions(userPermissions, requiredPermissions);\nconst securityChecks = performSecurityChecks(authData, userPermissions);\n\n// Determine final authorization\nconst isAuthorized = authData.is_authenticated && \n                   permissionCheck.authorized && \n                   securityChecks.all_passed;\n\n// Generate audit trail\nconst auditEntry = {\n  user_id: userId,\n  operation_type: operationType,\n  authorization_result: isAuthorized,\n  timestamp: new Date().toISOString(),\n  security_score: authData.security_score,\n  ip_address: authData.ip_address,\n  user_agent: authData.user_agent\n};\n\nreturn [{\n  json: {\n    authorization_complete: true,\n    is_authorized: isAuthorized,\n    user_permissions: userPermissions,\n    permission_check: permissionCheck,\n    security_checks: securityChecks,\n    audit_entry: auditEntry,\n    next_action: isAuthorized ? 'proceed' : 'deny',\n    denial_reason: !isAuthorized ? (\n      !authData.is_authenticated ? 'authentication_failed' :\n      !permissionCheck.authorized ? 'insufficient_permissions' :\n      'security_checks_failed'\n    ) : null\n  }\n}];"
+      },
+      "id": "permission-authorization",
+      "name": "Permission Authorization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data sanitization and security scanning\nconst authData = $json;\nconst validationData = authData.validation_data || {};\n\n// XSS protection patterns\nconst xssPatterns = [\n  /<script[^>]*>.*?<\\/script>/gi,\n  /<iframe[^>]*>.*?<\\/iframe>/gi,\n  /<object[^>]*>.*?<\\/object>/gi,\n  /<embed[^>]*>/gi,\n  /javascript:/gi,\n  /vbscript:/gi,\n  /onload=/gi,\n  /onerror=/gi,\n  /onclick=/gi\n];\n\n// SQL injection patterns\nconst sqlPatterns = [\n  /('|(\\-\\-)|(;)|(\\||\\|)|(\\*|\\*))/,\n  /(^|\\s)(union|select|insert|delete|update|drop|create|alter|exec|execute)\\s/gi,\n  /\\b(and|or)\\s+\\d+\\s*=\\s*\\d+/gi,\n  /\\b(true|false)\\s*=\\s*\\b(true|false)/gi\n];\n\n// Sensitive data patterns\nconst sensitivePatterns = {\n  credit_card: /\\b(?:\\d{4}[\\s-]?){3}\\d{4}\\b/g,\n  ssn: /\\b\\d{3}-\\d{2}-\\d{4}\\b/g,\n  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g,\n  phone: /\\b\\d{3}-\\d{3}-\\d{4}\\b/g,\n  api_key: /\\b[A-Za-z0-9]{32,}\\b/g\n};\n\n// Sanitize string data\nfunction sanitizeString(str) {\n  if (typeof str !== 'string') return str;\n  \n  let sanitized = str;\n  const detectedThreats = [];\n  \n  // Check for XSS\n  xssPatterns.forEach(pattern => {\n    if (pattern.test(sanitized)) {\n      detectedThreats.push('xss_attempt');\n      sanitized = sanitized.replace(pattern, '[REMOVED_XSS]');\n    }\n  });\n  \n  // Check for SQL injection\n  sqlPatterns.forEach(pattern => {\n    if (pattern.test(sanitized)) {\n      detectedThreats.push('sql_injection_attempt');\n      sanitized = sanitized.replace(pattern, '[REMOVED_SQL]');\n    }\n  });\n  \n  // HTML encode remaining tags\n  sanitized = sanitized\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#x27;')\n    .replace(/\\//g, '&#x2F;');\n  \n  return {\n    original: str,\n    sanitized: sanitized,\n    threats_detected: detectedThreats,\n    was_modified: str !== sanitized\n  };\n}\n\n// Detect and mask sensitive data\nfunction detectSensitiveData(str) {\n  if (typeof str !== 'string') return { clean: str, sensitive_data: [] };\n  \n  let clean = str;\n  const sensitiveDataFound = [];\n  \n  Object.entries(sensitivePatterns).forEach(([type, pattern]) => {\n    const matches = str.match(pattern);\n    if (matches) {\n      sensitiveDataFound.push({\n        type: type,\n        count: matches.length,\n        locations: matches.map(match => str.indexOf(match))\n      });\n      \n      // Mask the sensitive data\n      clean = clean.replace(pattern, `[REDACTED_${type.toUpperCase()}]`);\n    }\n  });\n  \n  return {\n    clean: clean,\n    sensitive_data: sensitiveDataFound,\n    contains_sensitive: sensitiveDataFound.length > 0\n  };\n}\n\n// Recursively sanitize object\nfunction sanitizeObject(obj) {\n  if (typeof obj !== 'object' || obj === null) {\n    return sanitizeString(obj);\n  }\n  \n  const sanitized = {};\n  const threats = [];\n  const sensitiveData = [];\n  \n  Object.keys(obj).forEach(key => {\n    if (typeof obj[key] === 'string') {\n      const stringResult = sanitizeString(obj[key]);\n      const sensitiveResult = detectSensitiveData(stringResult.sanitized);\n      \n      sanitized[key] = sensitiveResult.clean;\n      \n      if (stringResult.threats_detected.length > 0) {\n        threats.push(...stringResult.threats_detected);\n      }\n      \n      if (sensitiveResult.sensitive_data.length > 0) {\n        sensitiveData.push(...sensitiveResult.sensitive_data.map(s => ({\n          ...s,\n          field: key\n        })));\n      }\n    } else if (typeof obj[key] === 'object') {\n      const nestedResult = sanitizeObject(obj[key]);\n      sanitized[key] = nestedResult.sanitized;\n      threats.push(...nestedResult.threats_detected);\n      sensitiveData.push(...nestedResult.sensitive_data);\n    } else {\n      sanitized[key] = obj[key];\n    }\n  });\n  \n  return {\n    sanitized: sanitized,\n    threats_detected: [...new Set(threats)],\n    sensitive_data: sensitiveData\n  };\n}\n\n// Perform data sanitization\nconst sanitizationResult = sanitizeObject(validationData);\n\n// Compliance checks\nconst complianceChecks = {\n  gdpr_consent: validationData.gdpr_consent || false,\n  data_minimization: Object.keys(validationData).length <= 20, // Reasonable limit\n  purpose_limitation: validationData.processing_purpose ? true : false,\n  retention_compliance: validationData.retention_period ? true : false\n};\n\nconst complianceScore = Object.values(complianceChecks).filter(Boolean).length / Object.keys(complianceChecks).length * 100;\n\nreturn [{\n  json: {\n    data_sanitized: true,\n    sanitized_data: sanitizationResult.sanitized,\n    security_threats: sanitizationResult.threats_detected,\n    sensitive_data_detected: sanitizationResult.sensitive_data,\n    compliance_checks: complianceChecks,\n    compliance_score: complianceScore,\n    data_safe_to_process: sanitizationResult.threats_detected.length === 0 && complianceScore >= 75,\n    sanitization_summary: {\n      threats_found: sanitizationResult.threats_detected.length,\n      sensitive_fields: sanitizationResult.sensitive_data.length,\n      compliance_passed: complianceScore >= 75\n    }\n  }\n}];"
+      },
+      "id": "data-sanitization",
+      "name": "Data Sanitization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 560]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "security_validation",
+              "leftValue": "={{$json.is_authorized && $json.data_safe_to_process}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "security-decision",
+      "name": "Security Decision",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "security_approval",
+              "name": "security_approval",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "validated_data",
+              "name": "validated_data",
+              "value": "={{$json.sanitized_data}}",
+              "type": "object"
+            },
+            {
+              "id": "security_metadata",
+              "name": "security_metadata",
+              "value": "={{\n  {\n    authentication_score: $json.security_score,\n    compliance_score: $json.compliance_score,\n    threats_detected: $json.security_threats,\n    validation_timestamp: new Date().toISOString()\n  }\n}}",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "id": "security-approval",
+      "name": "Security Approval",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1440, 320]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "security_approval",
+              "name": "security_approval",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "denial_reasons",
+              "name": "denial_reasons",
+              "value": "={{[\n  ...($json.security_threats || []),\n  ...($json.failed_checks || []),\n  $json.denial_reason\n].filter(Boolean)}}",
+              "type": "array"
+            },
+            {
+              "id": "security_score",
+              "name": "security_score",
+              "value": "={{$json.security_score || 0}}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "security-denial",
+      "name": "Security Denial",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1440, 480]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "log_security_event"
+            },
+            {
+              "name": "event_type",
+              "value": "security_validation"
+            },
+            {
+              "name": "user_id",
+              "value": "={{$json.user_id}}"
+            },
+            {
+              "name": "operation_type",
+              "value": "={{$json.operation_type}}"
+            },
+            {
+              "name": "security_result",
+              "value": "={{$json.security_approval ? 'approved' : 'denied'}}"
+            },
+            {
+              "name": "audit_data",
+              "value": "={{$json.audit_entry || {}}}"
+            }
+          ]
+        }
+      },
+      "id": "log-security-audit",
+      "name": "Log Security Audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1680, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.security_approval || false,\n  authorized: $json.security_approval || false,\n  security_score: $json.security_score || $json.security_metadata?.authentication_score || 0,\n  compliance_score: $json.security_metadata?.compliance_score || 0,\n  validated_data: $json.validated_data || null,\n  denial_reasons: $json.denial_reasons || [],\n  threats_detected: $json.security_threats || [],\n  validation_timestamp: new Date().toISOString(),\n  audit_logged: true\n})}}"
+      },
+      "id": "respond-security-webhook",
+      "name": "Respond Security Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input validation and security context preparation\nconst inputData = $input.all()[0].json;\n\n// Validate required security fields\nif (!inputData.operation_type) {\n  throw new Error('Missing operation_type for security validation');\n}\n\n// Extract security context\nconst securityContext = {\n  operation_type: inputData.operation_type,\n  user_id: inputData.user_id || 'anonymous',\n  api_key: inputData.api_key,\n  validation_data: inputData.validation_data || {},\n  ip_address: inputData.ip_address || 'unknown',\n  user_agent: inputData.user_agent || 'unknown',\n  timestamp: new Date().toISOString(),\n  session_id: inputData.session_id,\n  request_origin: inputData.request_origin || 'unknown',\n  metadata: {\n    request_id: inputData.request_id || `req_${Date.now()}`,\n    validation_version: '1.0.0',\n    security_agent: 'ai_security_validator'\n  }\n};\n\n// Additional context for security analysis\nif (inputData.sensitive_operation) {\n  securityContext.sensitive_operation = true;\n  securityContext.additional_verification_required = true;\n}\n\nif (inputData.bulk_operation) {\n  securityContext.bulk_operation = true;\n  securityContext.data_volume = inputData.data_volume || 'unknown';\n}\n\nreturn [{ json: securityContext }];"
+      },
+      "id": "input-validation-security",
+      "name": "Input Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    }
+  ],
+  "connections": {
+    "Security Validator Webhook": {
+      "main": [
+        [
+          {
+            "node": "Input Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Validation": {
+      "main": [
+        [
+          {
+            "node": "AI Security Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Security Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Security Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authentication Validator Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Security Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Permission Checker Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Security Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Sanitizer Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Security Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance Checker Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Security Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Security Chat": {
+      "main": [
+        [
+          {
+            "node": "Authentication Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authentication Validation": {
+      "main": [
+        [
+          {
+            "node": "Permission Authorization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Permission Authorization": {
+      "main": [
+        [
+          {
+            "node": "Data Sanitization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Sanitization": {
+      "main": [
+        [
+          {
+            "node": "Security Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Decision": {
+      "main": [
+        [
+          {
+            "node": "Security Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Security Denial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Approval": {
+      "main": [
+        [
+          {
+            "node": "Log Security Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Denial": {
+      "main": [
+        [
+          {
+            "node": "Log Security Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Security Audit": {
+      "main": [
+        [
+          {
+            "node": "Respond Security Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "leadfly-ai-error-handler"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-ai-security-validator",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "ai-agent",
+      "name": "ai-agent"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "security",
+      "name": "security"
+    }
+  ]
+}

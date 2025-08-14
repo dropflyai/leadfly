@@ -1,0 +1,404 @@
+{
+  "name": "LeadFly AI - Subscriber Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/subscriber-onboarding",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "id": "onboarding-webhook",
+      "name": "Onboarding Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process new subscriber data and initialize onboarding\nconst subscriberData = $json;\n\n// Extract subscriber information\nconst userId = subscriberData.user_id;\nconst email = subscriberData.email;\nconst planType = subscriberData.plan_type || 'starter';\nconst stripeCustomerId = subscriberData.stripe_customer_id;\nconst subscriptionId = subscriberData.subscription_id;\n\n// Determine onboarding flow based on plan\nconst onboardingFlow = {\n  starter: {\n    steps: ['welcome', 'profile_setup', 'first_lead_capture', 'basic_training'],\n    duration_days: 7,\n    email_sequence: 'starter_onboarding',\n    features_to_enable: ['basic_lead_processing', 'email_templates']\n  },\n  pro: {\n    steps: ['welcome', 'profile_setup', 'integration_setup', 'advanced_training', 'ai_customization'],\n    duration_days: 14,\n    email_sequence: 'pro_onboarding',\n    features_to_enable: ['advanced_ai', 'integrations', 'analytics_dashboard']\n  },\n  enterprise: {\n    steps: ['welcome', 'profile_setup', 'team_setup', 'integration_setup', 'custom_training', 'success_manager'],\n    duration_days: 21,\n    email_sequence: 'enterprise_onboarding',\n    features_to_enable: ['all_features', 'white_label', 'custom_integrations']\n  }\n};\n\nconst flow = onboardingFlow[planType] || onboardingFlow.starter;\n\n// Create onboarding session\nconst onboardingSession = {\n  user_id: userId,\n  email: email,\n  plan_type: planType,\n  stripe_customer_id: stripeCustomerId,\n  subscription_id: subscriptionId,\n  onboarding_flow: flow,\n  current_step: 0,\n  steps_completed: [],\n  started_at: new Date().toISOString(),\n  expected_completion: new Date(Date.now() + flow.duration_days * 24 * 60 * 60 * 1000).toISOString(),\n  status: 'started'\n};\n\n// Prepare welcome email data\nconst welcomeEmailData = {\n  to: email,\n  template: 'welcome_onboarding',\n  personalizations: {\n    plan_name: planType.charAt(0).toUpperCase() + planType.slice(1),\n    onboarding_steps: flow.steps.length,\n    expected_duration: flow.duration_days,\n    dashboard_url: `https://leadfly-ai.vercel.app/onboarding?session=${userId}`,\n    support_email: 'onboarding@leadfly-ai.com'\n  }\n};\n\nreturn {\n  ...subscriberData,\n  onboarding_session: onboardingSession,\n  welcome_email: welcomeEmailData,\n  next_action: 'initialize_onboarding'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "initialize-onboarding",
+      "name": "Initialize Onboarding"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "insert",
+        "tableId": "subscriber_onboarding",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{$json.user_id}}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{$json.email}}"
+            },
+            {
+              "fieldId": "plan_type",
+              "fieldValue": "={{$json.plan_type}}"
+            },
+            {
+              "fieldId": "onboarding_data",
+              "fieldValue": "={{JSON.stringify($json.onboarding_session)}}"
+            },
+            {
+              "fieldId": "current_step",
+              "fieldValue": "=0"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "started"
+            },
+            {
+              "fieldId": "created_at",
+              "fieldValue": "={{$json.onboarding_session.started_at}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "store-onboarding-session",
+      "name": "Store Onboarding Session",
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase_api_key",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "tableId": "profiles",
+        "dataMode": "defineInNode",
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{$json.user_id}}"
+          }
+        ],
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "onboarding_status",
+              "fieldValue": "in_progress"
+            },
+            {
+              "fieldId": "subscription_plan",
+              "fieldValue": "={{$json.plan_type}}"
+            },
+            {
+              "fieldId": "stripe_customer_id",
+              "fieldValue": "={{$json.stripe_customer_id}}"
+            },
+            {
+              "fieldId": "features_enabled",
+              "fieldValue": "={{JSON.stringify($json.onboarding_session.onboarding_flow.features_to_enable)}}"
+            },
+            {
+              "fieldId": "updated_at",
+              "fieldValue": "={{$json.onboarding_session.started_at}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "id": "update-user-profile",
+      "name": "Update User Profile",
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase_api_key",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "onboarding@leadfly-ai.com",
+        "toEmail": "={{$json.email}}",
+        "subject": "🚀 Welcome to LeadFly AI - Let's Get You Started!",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <title>Welcome to LeadFly AI</title>\n  <style>\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: white; padding: 30px; border-radius: 0 0 10px 10px; }\n    .button { background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0; }\n    .steps { background: #f8f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .step { margin: 10px 0; padding: 10px; background: white; border-radius: 6px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>🎉 Welcome to LeadFly AI!</h1>\n      <p>Your {{$json.welcome_email.personalizations.plan_name}} plan is now active</p>\n    </div>\n    <div class=\"content\">\n      <h2>Let's get you started with your {{$json.welcome_email.personalizations.onboarding_steps}}-step onboarding</h2>\n      <p>Hi there! 👋</p>\n      <p>Welcome to LeadFly AI - the most advanced lead generation platform with 99.2% duplicate prevention and AI-powered insights!</p>\n      \n      <div class=\"steps\">\n        <h3>🚀 Your Onboarding Journey</h3>\n        <div class=\"step\">✅ Step 1: Account Setup (Complete!)</div>\n        <div class=\"step\">📝 Step 2: Profile Configuration</div>\n        <div class=\"step\">🎯 Step 3: First Lead Capture Setup</div>\n        <div class=\"step\">🧠 Step 4: AI Training & Customization</div>\n        <div class=\"step\">📊 Step 5: Analytics Dashboard Tour</div>\n      </div>\n      \n      <p><strong>Expected completion time:</strong> {{$json.welcome_email.personalizations.expected_duration}} days</p>\n      \n      <a href=\"{{$json.welcome_email.personalizations.dashboard_url}}\" class=\"button\">Start Your Onboarding →</a>\n      \n      <h3>🎯 What makes LeadFly AI special?</h3>\n      <ul>\n        <li><strong>99.2% Duplicate Prevention:</strong> Save 85% on processing costs</li>\n        <li><strong>Advanced AI Scoring:</strong> 94% accuracy vs 67% industry average</li>\n        <li><strong>Real-time Intelligence:</strong> Company research and competitive analysis</li>\n        <li><strong>Sub-200ms Performance:</strong> Fastest platform in the market</li>\n      </ul>\n      \n      <p>Questions? Reply to this email or contact us at {{$json.welcome_email.personalizations.support_email}}</p>\n      \n      <p>Best regards,<br>The LeadFly AI Team</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "credentials": {
+        "smtp": {
+          "id": "smtp_credentials",
+          "name": "SMTP Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Schedule follow-up onboarding emails and tasks\nconst onboardingData = $json;\nconst planType = onboardingData.plan_type;\nconst userId = onboardingData.user_id;\n\n// Define email schedule based on plan\nconst emailSchedules = {\n  starter: [\n    { day: 1, template: 'profile_setup_reminder', subject: 'Complete your LeadFly profile in 2 minutes' },\n    { day: 3, template: 'first_lead_tutorial', subject: 'Ready to capture your first qualified lead?' },\n    { day: 5, template: 'ai_features_intro', subject: 'Unlock your AI superpowers' },\n    { day: 7, template: 'onboarding_completion', subject: 'You\\'re all set! What\\'s next?' }\n  ],\n  pro: [\n    { day: 1, template: 'profile_setup_reminder', subject: 'Complete your LeadFly Pro setup' },\n    { day: 2, template: 'integrations_setup', subject: 'Connect your CRM and tools' },\n    { day: 4, template: 'advanced_ai_tutorial', subject: 'Master your AI-powered lead scoring' },\n    { day: 7, template: 'analytics_dashboard', subject: 'Dive into your analytics dashboard' },\n    { day: 10, template: 'optimization_tips', subject: 'Pro tips for 3x better results' },\n    { day: 14, template: 'pro_completion', subject: 'You\\'re a LeadFly Pro expert!' }\n  ],\n  enterprise: [\n    { day: 1, template: 'enterprise_welcome', subject: 'Welcome to LeadFly Enterprise' },\n    { day: 2, template: 'team_setup_guide', subject: 'Set up your team and permissions' },\n    { day: 3, template: 'success_manager_intro', subject: 'Meet your dedicated success manager' },\n    { day: 5, template: 'custom_integrations', subject: 'Custom integrations and white-label setup' },\n    { day: 10, template: 'advanced_training', subject: 'Advanced training session scheduled' },\n    { day: 14, template: 'performance_review', subject: 'Your 2-week performance review' },\n    { day: 21, template: 'enterprise_graduation', subject: 'Congratulations on completing Enterprise onboarding!' }\n  ]\n};\n\nconst schedule = emailSchedules[planType] || emailSchedules.starter;\n\n// Create scheduled tasks\nconst scheduledTasks = schedule.map(email => {\n  const scheduledDate = new Date();\n  scheduledDate.setDate(scheduledDate.getDate() + email.day);\n  \n  return {\n    user_id: userId,\n    task_type: 'onboarding_email',\n    scheduled_for: scheduledDate.toISOString(),\n    data: {\n      email_template: email.template,\n      subject: email.subject,\n      day: email.day\n    },\n    status: 'pending'\n  };\n});\n\n// Create onboarding checkpoints\nconst checkpoints = [\n  { step: 'profile_complete', deadline_days: 2, required: true },\n  { step: 'first_lead_captured', deadline_days: 5, required: true },\n  { step: 'ai_features_used', deadline_days: 7, required: false },\n  { step: 'dashboard_explored', deadline_days: 10, required: false },\n  { step: 'integration_connected', deadline_days: 14, required: planType !== 'starter' }\n];\n\nreturn {\n  user_id: userId,\n  plan_type: planType,\n  scheduled_tasks: scheduledTasks,\n  checkpoints: checkpoints,\n  onboarding_initialized: true,\n  next_action: 'schedule_follow_ups'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "id": "schedule-follow-ups",
+      "name": "Schedule Follow-ups"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "insert",
+        "tableId": "scheduled_tasks",
+        "dataMode": "defineInNode",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{$json.user_id}}"
+            },
+            {
+              "fieldId": "task_type",
+              "fieldValue": "onboarding_follow_up"
+            },
+            {
+              "fieldId": "task_data",
+              "fieldValue": "={{JSON.stringify($json.scheduled_tasks)}}"
+            },
+            {
+              "fieldId": "scheduled_for",
+              "fieldValue": "={{new Date(Date.now() + 24*60*60*1000).toISOString()}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1560, 300],
+      "id": "store-scheduled-tasks",
+      "name": "Store Scheduled Tasks",
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase_api_key",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://leadfly-ai.vercel.app/api/analytics/track",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event",
+              "value": "onboarding_started"
+            },
+            {
+              "name": "user_id",
+              "value": "={{$json.user_id}}"
+            },
+            {
+              "name": "plan_type",
+              "value": "={{$json.plan_type}}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{new Date().toISOString()}}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{JSON.stringify({\n  onboarding_flow: $json.plan_type,\n  expected_duration: $json.plan_type === 'enterprise' ? 21 : $json.plan_type === 'pro' ? 14 : 7,\n  welcome_email_sent: true\n})}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 500],
+      "id": "track-analytics",
+      "name": "Track Analytics"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.plan_type}}",
+              "operation": "equal",
+              "value2": "enterprise"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 500],
+      "id": "is-enterprise",
+      "name": "Is Enterprise?"
+    },
+    {
+      "parameters": {
+        "url": "https://leadfly-ai.vercel.app/api/onboarding/assign-success-manager",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{$json.user_id}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$json.email}}"
+            },
+            {
+              "name": "plan_type",
+              "value": "={{$json.plan_type}}"
+            },
+            {
+              "name": "stripe_customer_id",
+              "value": "={{$json.stripe_customer_id}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 700],
+      "id": "assign-success-manager",
+      "name": "Assign Success Manager"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Onboarding initialized successfully\",\n  \"user_id\": \"{{$json.user_id}}\",\n  \"plan_type\": \"{{$json.plan_type}}\",\n  \"onboarding_status\": \"started\",\n  \"welcome_email_sent\": true,\n  \"scheduled_follow_ups\": {{$json.scheduled_tasks?.length || 0}},\n  \"dashboard_url\": \"https://leadfly-ai.vercel.app/onboarding?session={{$json.user_id}}\",\n  \"next_steps\": [\n    \"Complete your profile setup\",\n    \"Connect your first integration\", \n    \"Capture your first lead\",\n    \"Explore AI features\"\n  ]\n}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "id": "onboarding-response",
+      "name": "Onboarding Response"
+    }
+  ],
+  "connections": {
+    "Onboarding Webhook": {
+      "main": [
+        [
+          {
+            "node": "Initialize Onboarding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Onboarding": {
+      "main": [
+        [
+          {
+            "node": "Store Onboarding Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Onboarding Session": {
+      "main": [
+        [
+          {
+            "node": "Update User Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User Profile": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Schedule Follow-ups",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Enterprise?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Store Scheduled Tasks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Track Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Scheduled Tasks": {
+      "main": [
+        [
+          {
+            "node": "Onboarding Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Enterprise?": {
+      "main": [
+        [
+          {
+            "node": "Assign Success Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

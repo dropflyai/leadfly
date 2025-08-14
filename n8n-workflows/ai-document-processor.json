@@ -1,0 +1,551 @@
+{
+  "name": "LeadFly AI - Document Processor Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/ai-document-processor",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "document-processor-webhook",
+      "name": "Document Processor Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 360],
+      "webhookId": "leadfly-ai-document-processor"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 3000
+        }
+      },
+      "id": "ai-document-agent",
+      "name": "AI Document Agent",
+      "type": "n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [480, 360],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "mistral_ocr_tool",
+        "description": "Processes PDF documents and images using Mistral OCR to extract text and structured data"
+      },
+      "id": "mistral-ocr-tool",
+      "name": "Mistral OCR Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "name": "ocrspace_tool", 
+        "description": "Alternative OCR processing using OCRSpace API for image and PDF text extraction"
+      },
+      "id": "ocrspace-tool",
+      "name": "OCRSpace Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "name": "data_extractor_tool",
+        "description": "Extracts structured data from processed documents including contact info, company details"
+      },
+      "id": "data-extractor-tool",
+      "name": "Data Extractor Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 280]
+    },
+    {
+      "parameters": {
+        "chatMessages": [
+          {
+            "role": "system",
+            "content": "You are the Document Processing AI Agent for LeadFly's lead generation system. Your role is to intelligently process documents to extract valuable lead information.\n\nCapabilities:\n1. OCR Processing: Extract text from PDFs, images, business cards, and documents\n2. Data Extraction: Identify contact information, company details, job titles\n3. Lead Enrichment: Structure extracted data for lead qualification\n4. Quality Validation: Verify extracted data accuracy and completeness\n\nTools Available:\n- mistral_ocr_tool: Primary OCR processing with AI understanding\n- ocrspace_tool: Fallback OCR service for reliability\n- data_extractor_tool: Structured data extraction and formatting\n\nProcessing Guidelines:\n- Always validate extracted email addresses and phone numbers\n- Extract company information including industry and size indicators\n- Identify decision-maker titles and roles\n- Format output as structured lead data compatible with LeadFly API\n- Use fallback OCR if primary method fails\n- Maintain data privacy and security standards"
+          },
+          {
+            "role": "user",
+            "content": "Process this document for lead extraction. Document type: {{$json.document_type || 'unknown'}}. File: {{$json.file_url || $json.file_data}}. Extract: contact info, company details, job titles, and any other lead-relevant information."
+          }
+        ]
+      },
+      "id": "ai-document-chat",
+      "name": "AI Document Chat",
+      "type": "n8n-nodes-langchain.chatOpenAi",
+      "typeVersion": 1,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "url": "https://api.mistral.ai/v1/ocr",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.MISTRAL_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{$json.file_data}}"
+            },
+            {
+              "name": "extract_mode",
+              "value": "structured"
+            },
+            {
+              "name": "output_format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "retry": {
+            "enabled": true,
+            "maxRetries": 2,
+            "retryInterval": 2000
+          }
+        }
+      },
+      "id": "mistral-ocr-api",
+      "name": "Mistral OCR API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 240],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mistral-api-auth",
+          "name": "Mistral API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{$env.OCRSPACE_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{$json.file_data}}"
+            },
+            {
+              "name": "filetype",
+              "value": "{{$json.file_type || 'PDF'}}"
+            },
+            {
+              "name": "language",
+              "value": "eng"
+            },
+            {
+              "name": "isOverlayRequired",
+              "value": "true"
+            },
+            {
+              "name": "detectOrientation",
+              "value": "true"
+            },
+            {
+              "name": "scale",
+              "value": "true"
+            },
+            {
+              "name": "OCREngine",
+              "value": "2"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 45000,
+          "retry": {
+            "enabled": true,
+            "maxRetries": 2,
+            "retryInterval": 1500
+          }
+        }
+      },
+      "id": "ocrspace-fallback-api",
+      "name": "OCRSpace Fallback API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [960, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Intelligent data extraction from OCR results\nconst ocrResults = $input.all();\nlet extractedData = {\n  contacts: [],\n  companies: [],\n  leads: [],\n  raw_text: '',\n  confidence_score: 0\n};\n\n// Process each OCR result\nocrResults.forEach(result => {\n  const data = result.json;\n  let text = '';\n  \n  // Extract text from different OCR response formats\n  if (data.choices && data.choices[0] && data.choices[0].message) {\n    // Mistral OCR format\n    text = data.choices[0].message.content || '';\n    extractedData.confidence_score = Math.max(extractedData.confidence_score, 0.9);\n  } else if (data.ParsedResults && data.ParsedResults[0]) {\n    // OCRSpace format\n    text = data.ParsedResults[0].ParsedText || '';\n    extractedData.confidence_score = Math.max(extractedData.confidence_score, data.ParsedResults[0].TextOverlay?.HasOverlay ? 0.8 : 0.6);\n  } else if (typeof data === 'string') {\n    text = data;\n    extractedData.confidence_score = Math.max(extractedData.confidence_score, 0.5);\n  }\n  \n  extractedData.raw_text += text + '\\n';\n});\n\n// Extract structured information using regex patterns\nconst emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\nconst phoneRegex = /(?:\\+?1[-. ]?)?\\(?([0-9]{3})\\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})/g;\nconst companyRegex = /(?:Company|Corp|Inc|LLC|Ltd|Organization):[\\s]*([^\\n]+)/gi;\nconst titleRegex = /(?:Title|Position|Role):[\\s]*([^\\n]+)/gi;\nconst nameRegex = /(?:Name):[\\s]*([^\\n]+)/gi;\n\n// Extract emails\nconst emails = [...extractedData.raw_text.matchAll(emailRegex)].map(match => match[0]);\n\n// Extract phone numbers\nconst phones = [...extractedData.raw_text.matchAll(phoneRegex)].map(match => \n  match[0].replace(/[^\\d+]/g, '').replace(/^1/, '+1')\n);\n\n// Extract companies\nconst companies = [...extractedData.raw_text.matchAll(companyRegex)].map(match => \n  match[1].trim()\n);\n\n// Extract job titles\nconst titles = [...extractedData.raw_text.matchAll(titleRegex)].map(match => \n  match[1].trim()\n);\n\n// Extract names\nconst names = [...extractedData.raw_text.matchAll(nameRegex)].map(match => \n  match[1].trim()\n);\n\n// Create lead objects\nfor (let i = 0; i < Math.max(emails.length, 1); i++) {\n  const lead = {\n    email: emails[i] || null,\n    phone: phones[i] || null,\n    name: names[i] || null,\n    company: companies[i] || companies[0] || null,\n    title: titles[i] || titles[0] || null,\n    source: 'document_processing',\n    extracted_at: new Date().toISOString(),\n    confidence: extractedData.confidence_score\n  };\n  \n  // Split name into first/last if available\n  if (lead.name) {\n    const nameParts = lead.name.split(' ');\n    lead.first_name = nameParts[0] || '';\n    lead.last_name = nameParts.slice(1).join(' ') || '';\n  }\n  \n  extractedData.leads.push(lead);\n}\n\n// Return structured data\nreturn [{\n  json: {\n    success: true,\n    extraction_method: 'ai_ocr',\n    leads_found: extractedData.leads.length,\n    confidence_score: extractedData.confidence_score,\n    leads: extractedData.leads,\n    raw_text: extractedData.raw_text.substring(0, 1000), // Truncate for storage\n    processed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "data-extraction-processor",
+      "name": "Data Extraction Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "primary_ocr_check",
+              "leftValue": "={{$json.success}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "ocr-success-check",
+      "name": "OCR Success Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 320]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "error_message",
+              "name": "error_message",
+              "value": "All OCR methods failed",
+              "type": "string"
+            },
+            {
+              "id": "success",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "fallback_used",
+              "name": "fallback_used",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "leads",
+              "name": "leads",
+              "value": [],
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "ocr-failure-handler",
+      "name": "OCR Failure Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1200, 520]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "process_extracted_leads"
+            },
+            {
+              "name": "leads",
+              "value": "={{$json.leads}}"
+            },
+            {
+              "name": "source",
+              "value": "document_processing"
+            },
+            {
+              "name": "extraction_metadata",
+              "value": "={{\n  {\n    confidence_score: $json.confidence_score,\n    extraction_method: $json.extraction_method,\n    processed_at: $json.processed_at\n  }\n}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "save-extracted-leads",
+      "name": "Save Extracted Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 320],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success || false,\n  leads_extracted: $json.leads_found || 0,\n  confidence_score: $json.confidence_score || 0,\n  extraction_method: $json.extraction_method || 'fallback',\n  leads: $json.leads || [],\n  processing_time: new Date().toISOString(),\n  error: $json.error_message || null\n})}}"
+      },
+      "id": "respond-document-webhook",
+      "name": "Respond Document Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1680, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input validation and file processing\nconst inputData = $input.all()[0].json;\n\n// Validate required fields\nif (!inputData.file_data && !inputData.file_url) {\n  throw new Error('Missing file_data or file_url');\n}\n\n// Determine file type\nlet fileType = inputData.file_type || 'unknown';\nif (!fileType || fileType === 'unknown') {\n  if (inputData.file_url) {\n    const url = inputData.file_url.toLowerCase();\n    if (url.includes('.pdf')) fileType = 'PDF';\n    else if (url.includes('.jpg') || url.includes('.jpeg')) fileType = 'JPG';\n    else if (url.includes('.png')) fileType = 'PNG';\n    else if (url.includes('.gif')) fileType = 'GIF';\n  }\n}\n\n// Prepare processing data\nconst processingData = {\n  file_data: inputData.file_data,\n  file_url: inputData.file_url,\n  file_type: fileType,\n  document_type: inputData.document_type || 'unknown',\n  user_id: inputData.user_id,\n  lead_id: inputData.lead_id,\n  processing_priority: inputData.priority || 'normal',\n  metadata: {\n    uploaded_at: new Date().toISOString(),\n    original_filename: inputData.filename,\n    file_size: inputData.file_size\n  }\n};\n\nreturn [{ json: processingData }];"
+      },
+      "id": "input-validation",
+      "name": "Input Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    }
+  ],
+  "connections": {
+    "Document Processor Webhook": {
+      "main": [
+        [
+          {
+            "node": "Input Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Validation": {
+      "main": [
+        [
+          {
+            "node": "AI Document Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Document Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Document Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Document Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCRSpace Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Document Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Extractor Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Document Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Document Chat": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR API": {
+      "main": [
+        [
+          {
+            "node": "OCR Success Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Success Check": {
+      "main": [
+        [
+          {
+            "node": "Data Extraction Processor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OCRSpace Fallback API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCRSpace Fallback API": {
+      "main": [
+        [
+          {
+            "node": "Data Extraction Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "OCR Failure Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Extraction Processor": {
+      "main": [
+        [
+          {
+            "node": "Save Extracted Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Failure Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Document Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Extracted Leads": {
+      "main": [
+        [
+          {
+            "node": "Respond Document Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "leadfly-error-handler"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-ai-document-processor",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "ai-agent",
+      "name": "ai-agent"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "document-processing",
+      "name": "document-processing"
+    }
+  ]
+}

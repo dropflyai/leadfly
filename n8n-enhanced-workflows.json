@@ -1,0 +1,511 @@
+{
+  "name": "DropFly LeadFly AI 2.0 - Enhanced Lead Processing",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Lead Input Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly-enhanced",
+        "responseMode": "responseNode"
+      },
+      "position": [100, 100]
+    },
+    {
+      "id": "knowledge-engine-enrichment",
+      "name": "DropFly Knowledge Engine Enrichment",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "http://YOUR_MAIN_IP/api/v1/enrich-lead",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer DropFly2024Knowledge!"
+        },
+        "body": {
+          "lead_data": "={{$json}}"
+        }
+      },
+      "position": [300, 100]
+    },
+    {
+      "id": "multi-source-enrichment",
+      "name": "Multi-Source Data Enrichment",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "values": {
+          "apollo_data": "={{$node['apollo-enrichment'].json}}",
+          "clay_data": "={{$node['clay-enrichment'].json}}",
+          "clearbit_data": "={{$node['clearbit-enrichment'].json}}",
+          "proxycurl_data": "={{$node['proxycurl-enrichment'].json}}"
+        }
+      },
+      "position": [500, 100]
+    },
+    {
+      "id": "apollo-enrichment",
+      "name": "Apollo AI Enhanced",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.apollo.io/v1/people/match",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          "X-Api-Key": "YOUR_APOLLO_API_KEY"
+        },
+        "body": {
+          "first_name": "={{$json.first_name}}",
+          "last_name": "={{$json.last_name}}",
+          "organization_name": "={{$json.company_name}}",
+          "email": "={{$json.email}}"
+        }
+      },
+      "position": [300, 200]
+    },
+    {
+      "id": "clay-enrichment",
+      "name": "Clay 100+ Sources",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.clay.com/v1/enrich",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_CLAY_API_KEY"
+        },
+        "body": {
+          "input": "={{$json}}",
+          "sources": ["apollo", "clearbit", "hunter", "proxycurl", "linkedin", "zoominfo"],
+          "fallback_strategy": "waterfall",
+          "quality_threshold": 85
+        }
+      },
+      "position": [300, 300]
+    },
+    {
+      "id": "intent-analysis",
+      "name": "Intent Data Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "http://YOUR_MAIN_IP/api/v1/analyze-intent",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "company_domain": "={{$json.company_domain}}",
+          "company_name": "={{$json.company_name}}",
+          "industry": "={{$json.industry}}"
+        }
+      },
+      "position": [700, 100]
+    },
+    {
+      "id": "ai-qualification",
+      "name": "AI Lead Qualification",
+      "type": "n8n-nodes-base.openAi",
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are DropFly's AI qualification agent. Analyze the enriched lead data and provide a qualification score (0-100), key insights, recommended approach, and talking points. Format as JSON."
+          },
+          {
+            "role": "user",
+            "content": "Analyze this lead: {{JSON.stringify($json)}}"
+          }
+        ],
+        "temperature": 0.3,
+        "maxTokens": 1000
+      },
+      "position": [900, 100]
+    },
+    {
+      "id": "competitive-intelligence",
+      "name": "Competitive Intelligence Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "http://YOUR_MAIN_IP/api/v1/competitive-analysis",
+        "method": "POST",
+        "body": {
+          "company_name": "={{$json.company_name}}",
+          "technology_stack": "={{$json.technologies}}",
+          "current_tools": "={{$json.current_automation_tools}}"
+        }
+      },
+      "position": [700, 200]
+    },
+    {
+      "id": "automation-routing",
+      "name": "Automation Strategy Decision",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "conditions": {
+          "and": [
+            {
+              "leftValue": "={{$node['ai-qualification'].json.qualification_score}}",
+              "rightValue": 80,
+              "operation": "largerEqual"
+            },
+            {
+              "leftValue": "={{$node['intent-analysis'].json.intent_score}}",
+              "rightValue": 70,
+              "operation": "largerEqual"
+            }
+          ]
+        }
+      },
+      "position": [1100, 100]
+    },
+    {
+      "id": "premium-outreach",
+      "name": "Premium Outreach (High-Value)",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "values": {
+          "strategy": "premium",
+          "channels": ["retell_voice_call", "personalized_email", "linkedin_premium"],
+          "priority": "immediate"
+        }
+      },
+      "position": [1300, 50]
+    },
+    {
+      "id": "standard-outreach",
+      "name": "Standard Outreach",
+      "type": "n8n-nodes-base.set",
+      "parameters": {
+        "values": {
+          "strategy": "standard", 
+          "channels": ["email_sequence", "linkedin_connection"],
+          "priority": "high"
+        }
+      },
+      "position": [1300, 150]
+    },
+    {
+      "id": "retell-voice-call",
+      "name": "Retell AI Voice Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.retellai.com/v1/call",
+        "method": "POST",
+        "headers": {
+          "Authorization": "Bearer YOUR_RETELL_API_KEY",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "agent_id": "dropfly_leadfly_agent",
+          "customer_number": "={{$json.phone_number}}",
+          "metadata": {
+            "lead_id": "={{$json.id}}",
+            "qualification_score": "={{$node['ai-qualification'].json.qualification_score}}",
+            "talking_points": "={{$node['ai-qualification'].json.talking_points}}"
+          }
+        }
+      },
+      "position": [1500, 50]
+    },
+    {
+      "id": "personalized-email",
+      "name": "AI-Generated Personalized Email",
+      "type": "n8n-nodes-base.openAi",
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Generate a highly personalized email for this qualified lead. Use their company data, recent news, pain points, and competitive landscape. Make it consultative, not salesy."
+          },
+          {
+            "role": "user",
+            "content": "Lead data: {{JSON.stringify($json)}}\nQualification insights: {{$node['ai-qualification'].json}}\nCompetitive context: {{$node['competitive-intelligence'].json}}"
+          }
+        ],
+        "temperature": 0.7,
+        "maxTokens": 800
+      },
+      "position": [1500, 100]
+    },
+    {
+      "id": "gmail-send",
+      "name": "Send via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "parameters": {
+        "operation": "send",
+        "toEmail": "={{$json.email}}",
+        "subject": "={{$node['personalized-email'].json.subject}}",
+        "message": "={{$node['personalized-email'].json.body}}",
+        "attachments": []
+      },
+      "position": [1700, 100]
+    },
+    {
+      "id": "linkedin-outreach",
+      "name": "LinkedIn Connection + Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "url": "https://api.phantombuster.com/api/v2/agents/launch",
+        "method": "POST",
+        "headers": {
+          "X-Phantombuster-Key": "YOUR_PHANTOMBUSTER_KEY"
+        },
+        "body": {
+          "id": "linkedin_connection_agent_id",
+          "argument": {
+            "profileUrl": "={{$json.linkedin_url}}",
+            "message": "={{$node['ai-qualification'].json.linkedin_message}}"
+          }
+        }
+      },
+      "position": [1500, 150]
+    },
+    {
+      "id": "supabase-update",
+      "name": "Update Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "parameters": {
+        "operation": "update",
+        "table": "leads",
+        "filterType": "string",
+        "filterValue": "={{$json.id}}",
+        "fieldsUi": {
+          "fields": [
+            {
+              "fieldName": "enrichment_data",
+              "fieldValue": "={{$node['multi-source-enrichment'].json}}"
+            },
+            {
+              "fieldName": "qualification_score",
+              "fieldValue": "={{$node['ai-qualification'].json.qualification_score}}"
+            },
+            {
+              "fieldName": "intent_score", 
+              "fieldValue": "={{$node['intent-analysis'].json.intent_score}}"
+            },
+            {
+              "fieldName": "automation_status",
+              "fieldValue": "processed"
+            },
+            {
+              "fieldName": "last_updated",
+              "fieldValue": "={{new Date().toISOString()}}"
+            }
+          ]
+        }
+      },
+      "position": [1900, 100]
+    },
+    {
+      "id": "slack-notification",
+      "name": "Slack Alert for High-Value Leads",
+      "type": "n8n-nodes-base.slack",
+      "parameters": {
+        "operation": "postMessage",
+        "channel": "#high-value-leads",
+        "text": "🚀 High-value lead detected!\n\nCompany: {{$json.company_name}}\nContact: {{$json.first_name}} {{$json.last_name}}\nQualification Score: {{$node['ai-qualification'].json.qualification_score}}/100\nIntent Score: {{$node['intent-analysis'].json.intent_score}}/100\n\nAutomation Status: {{$node['automation-routing'].json.strategy}}"
+      },
+      "position": [1700, 50]
+    },
+    {
+      "id": "knowledge-engine-storage",
+      "name": "Store in Knowledge Engine",
+      "type": "n8n-nodes-base.httpRequest", 
+      "parameters": {
+        "url": "http://YOUR_MAIN_IP/api/v1/store-lead-intelligence",
+        "method": "POST",
+        "body": {
+          "lead_data": "={{$json}}",
+          "enrichment_data": "={{$node['multi-source-enrichment'].json}}",
+          "ai_insights": "={{$node['ai-qualification'].json}}",
+          "intent_data": "={{$node['intent-analysis'].json}}",
+          "competitive_intel": "={{$node['competitive-intelligence'].json}}",
+          "automation_results": "={{$node['automation-routing'].json}}"
+        }
+      },
+      "position": [1900, 200]
+    }
+  ],
+  "connections": {
+    "start": {
+      "main": [
+        [
+          {
+            "node": "knowledge-engine-enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "knowledge-engine-enrichment": {
+      "main": [
+        [
+          {
+            "node": "apollo-enrichment",
+            "type": "main", 
+            "index": 0
+          },
+          {
+            "node": "clay-enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "apollo-enrichment": {
+      "main": [
+        [
+          {
+            "node": "multi-source-enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clay-enrichment": {
+      "main": [
+        [
+          {
+            "node": "multi-source-enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "multi-source-enrichment": {
+      "main": [
+        [
+          {
+            "node": "intent-analysis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "competitive-intelligence", 
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "intent-analysis": {
+      "main": [
+        [
+          {
+            "node": "ai-qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-qualification": {
+      "main": [
+        [
+          {
+            "node": "automation-routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "automation-routing": {
+      "main": [
+        [
+          {
+            "node": "premium-outreach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "standard-outreach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "premium-outreach": {
+      "main": [
+        [
+          {
+            "node": "retell-voice-call",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "personalized-email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "slack-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "standard-outreach": {
+      "main": [
+        [
+          {
+            "node": "personalized-email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "linkedin-outreach",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "personalized-email": {
+      "main": [
+        [
+          {
+            "node": "gmail-send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gmail-send": {
+      "main": [
+        [
+          {
+            "node": "supabase-update",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "knowledge-engine-storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2024-12-22T00:00:00.000Z",
+  "updatedAt": "2024-12-22T00:00:00.000Z",
+  "settings": {
+    "timezone": "America/New_York",
+    "saveManualExecutions": true
+  }
+}

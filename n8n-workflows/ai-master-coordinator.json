@@ -1,0 +1,637 @@
+{
+  "name": "LeadFly AI - Master Coordinator Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/ai-coordinator",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "ai-coordinator-webhook",
+      "name": "AI Coordinator Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 360],
+      "webhookId": "leadfly-ai-coordinator"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "ai-master-agent",
+      "name": "AI Master Agent",
+      "type": "n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [480, 360],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "leadfly_api_tool",
+        "description": "Manages LeadFly lead processing, scoring, and qualification tasks"
+      },
+      "id": "leadfly-api-tool",
+      "name": "LeadFly API Tool", 
+      "type": "n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "name": "document_processor_tool",
+        "description": "Processes documents using OCR, extracts data, and formats content"
+      },
+      "id": "document-processor-tool",
+      "name": "Document Processor Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "name": "email_formatter_tool",
+        "description": "Generates and formats personalized email content for lead nurturing"
+      },
+      "id": "email-formatter-tool",
+      "name": "Email Formatter Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 280]
+    },
+    {
+      "parameters": {
+        "name": "security_validator_tool",
+        "description": "Validates authentication, checks permissions, and ensures data security"
+      },
+      "id": "security-validator-tool",
+      "name": "Security Validator Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 440]
+    },
+    {
+      "parameters": {
+        "chatMessages": [
+          {
+            "role": "system",
+            "content": "You are the Master AI Coordinator for LeadFly's lead generation automation system. You orchestrate specialized AI agents and tools to process leads through intelligent qualification funnels.\n\nYour responsibilities:\n1. Analyze incoming lead data and determine the best processing strategy\n2. Coordinate document processing, email formatting, and security validation\n3. Handle errors gracefully with fallback mechanisms\n4. Ensure TCPA compliance for all communications\n5. Optimize lead scoring and qualification processes\n\nAvailable Tools:\n- leadfly_api_tool: Core lead processing and qualification\n- document_processor_tool: OCR, PDF parsing, data extraction\n- email_formatter_tool: Personalized email generation and formatting\n- security_validator_tool: Authentication and permission validation\n\nAlways prioritize security, compliance, and user experience. Use fallback strategies when primary tools fail."
+          },
+          {
+            "role": "user", 
+            "content": "Process this request: {{$json.task_type || 'general_processing'}}. Data: {{JSON.stringify($json)}}"
+          }
+        ]
+      },
+      "id": "ai-agent-chat",
+      "name": "AI Agent Chat",
+      "type": "n8n-nodes-langchain.chatOpenAi",
+      "typeVersion": 1,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "task_routing",
+              "leftValue": "={{$json.task_type}}",
+              "rightValue": "lead_processing",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "task-router",
+      "name": "Task Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [960, 360]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "processed_data",
+              "name": "processed_data",
+              "value": "={{$json.response}}",
+              "type": "object"
+            },
+            {
+              "id": "success",
+              "name": "success", 
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "agent_used",
+              "name": "agent_used",
+              "value": "ai_master_coordinator",
+              "type": "string"
+            },
+            {
+              "id": "processing_time",
+              "name": "processing_time",
+              "value": "={{new Date().toISOString()}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-success-response",
+      "name": "Prepare Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1200, 240]
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{$json.error || 'AI processing failed'}}",
+        "options": {}
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1200, 480]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fallback_response",
+              "name": "fallback_response",
+              "value": "Processed using fallback system",
+              "type": "string"
+            },
+            {
+              "id": "success",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "fallback_used",
+              "name": "fallback_used",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "id": "fallback-processor",
+      "name": "Fallback Processor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1200, 600]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{$json.user_id}}"
+            },
+            {
+              "name": "lead_data", 
+              "value": "={{$json.lead_data}}"
+            },
+            {
+              "name": "ai_processed",
+              "value": true
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "retry": {
+            "enabled": true,
+            "maxRetries": 3,
+            "retryInterval": 1000
+          }
+        }
+      },
+      "id": "lead-processing-api",
+      "name": "Lead Processing API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 240],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "authentication": "predefinedCredentialType", 
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "schedule_task"
+            },
+            {
+              "name": "task_type",
+              "value": "document_processing"
+            },
+            {
+              "name": "lead_id",
+              "value": "={{$json.lead_id}}"
+            },
+            {
+              "name": "document_data",
+              "value": "={{$json.document_data}}"
+            }
+          ]
+        }
+      },
+      "id": "document-processing-api",
+      "name": "Document Processing API", 
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 360],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/email-sequences",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth", 
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "generate_email"
+            },
+            {
+              "name": "lead_id",
+              "value": "={{$json.lead_id}}"
+            },
+            {
+              "name": "template_data",
+              "value": "={{$json.email_data}}"
+            },
+            {
+              "name": "ai_generated",
+              "value": true
+            }
+          ]
+        }
+      },
+      "id": "email-formatting-api",
+      "name": "Email Formatting API",
+      "type": "n8n-nodes-base.httpRequest", 
+      "typeVersion": 4,
+      "position": [1440, 480],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success || false,\n  agent_response: $json.processed_data || $json.fallback_response,\n  processing_method: $json.fallback_used ? 'fallback' : 'ai_agent',\n  timestamp: new Date().toISOString(),\n  lead_id: $json.lead_id,\n  next_actions: $json.next_actions || []\n})}}"
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1680, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error_check",
+              "leftValue": "={{$json.error}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-for-errors",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Security validation and input sanitization\nconst inputData = $input.all();\n\n// Validate authentication\nif (!$env.LEADFLY_API_KEY) {\n  throw new Error('Missing API authentication');\n}\n\n// Sanitize input data\nconst sanitizedData = inputData.map(item => {\n  const data = item.json;\n  \n  // Remove potential XSS content\n  const sanitize = (str) => {\n    if (typeof str !== 'string') return str;\n    return str.replace(/<script[^>]*>.*?<\\/script>/gi, '')\n              .replace(/<[^>]*>/g, '')\n              .trim();\n  };\n  \n  // Apply sanitization to string fields\n  Object.keys(data).forEach(key => {\n    if (typeof data[key] === 'string') {\n      data[key] = sanitize(data[key]);\n    }\n  });\n  \n  // Add security metadata\n  data._security = {\n    validated: true,\n    timestamp: new Date().toISOString(),\n    ip_address: data.ip_address || 'unknown'\n  };\n  \n  return { json: data };\n});\n\nreturn sanitizedData;"
+      },
+      "id": "security-validation",
+      "name": "Security Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    }
+  ],
+  "connections": {
+    "AI Coordinator Webhook": {
+      "main": [
+        [
+          {
+            "node": "Security Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Validation": {
+      "main": [
+        [
+          {
+            "node": "AI Master Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Master Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LeadFly API Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Master Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Processor Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Master Agent",
+            "type": "ai_tool", 
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Formatter Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Master Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Security Validator Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Master Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Chat": {
+      "main": [
+        [
+          {
+            "node": "Task Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Router": {
+      "main": [
+        [
+          {
+            "node": "Lead Processing API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Document Processing API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email Formatting API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Processing API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Processing API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Formatting API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Processor": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "leadfly-error-handler"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-ai-master-coordinator",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z", 
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "ai-agent",
+      "name": "ai-agent"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "automation",
+      "name": "automation"
+    }
+  ]
+}

@@ -1,0 +1,457 @@
+{
+  "name": "LeadFly AI - Email Formatter Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/ai-email-formatter",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "email-formatter-webhook",
+      "name": "Email Formatter Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 360],
+      "webhookId": "leadfly-ai-email-formatter"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2500,
+          "presencePenalty": 0.1,
+          "frequencyPenalty": 0.1
+        }
+      },
+      "id": "ai-email-agent",
+      "name": "AI Email Agent",
+      "type": "n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [480, 360],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "email_template_generator",
+        "description": "Generates personalized email templates based on lead data and campaign objectives"
+      },
+      "id": "email-template-generator",
+      "name": "Email Template Generator",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "name": "personalization_engine",
+        "description": "Personalizes email content with lead-specific details, company information, and industry insights"
+      },
+      "id": "personalization-engine",
+      "name": "Personalization Engine",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "name": "compliance_checker",
+        "description": "Ensures email content complies with CAN-SPAM, GDPR, and TCPA regulations"
+      },
+      "id": "compliance-checker",
+      "name": "Compliance Checker",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 280]
+    },
+    {
+      "parameters": {
+        "name": "html_formatter",
+        "description": "Formats email content as responsive HTML with proper styling and tracking pixels"
+      },
+      "id": "html-formatter",
+      "name": "HTML Formatter",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 440]
+    },
+    {
+      "parameters": {
+        "chatMessages": [
+          {
+            "role": "system",
+            "content": "You are the Email Formatting AI Agent for LeadFly's lead generation system. Your role is to create compelling, personalized, and compliant email content for lead nurturing campaigns.\n\nCore Responsibilities:\n1. Email Generation: Create personalized emails based on lead data and campaign goals\n2. Personalization: Customize content using lead's name, company, industry, and interests\n3. Compliance: Ensure all emails meet CAN-SPAM, GDPR, and TCPA requirements\n4. Optimization: Create subject lines and content optimized for engagement\n5. Formatting: Generate both HTML and plain text versions\n\nTools Available:\n- email_template_generator: Creates base email templates for different campaign types\n- personalization_engine: Adds lead-specific personalization and industry insights\n- compliance_checker: Validates content for legal compliance\n- html_formatter: Creates responsive HTML email formatting\n\nEmail Best Practices:\n- Keep subject lines under 50 characters for mobile optimization\n- Use personalization beyond just first name (company, industry, recent news)\n- Include clear value proposition and call-to-action\n- Maintain professional but conversational tone\n- Always include unsubscribe links and compliance text\n- Test for spam filter compatibility\n\nSequence Guidelines:\n- Email 1: Introduction and value proposition\n- Email 2: Social proof and case studies\n- Email 3: Educational content or industry insights\n- Email 4: Soft sales approach with specific offer\n- Email 5+: Follow-up based on engagement patterns"
+          },
+          {
+            "role": "user",
+            "content": "Generate email for sequence step {{$json.sequence_step || 1}}. Lead: {{$json.lead_data ? JSON.stringify($json.lead_data) : 'No lead data'}}. Campaign: {{$json.campaign_type || 'general'}}}. Landing page: {{$json.landing_page_url || 'Not provided'}}. Personalization data: {{$json.personalization_data ? JSON.stringify($json.personalization_data) : 'None'}}"
+          }
+        ]
+      },
+      "id": "ai-email-chat",
+      "name": "AI Email Chat",
+      "type": "n8n-nodes-langchain.chatOpenAi",
+      "typeVersion": 1,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email template generation based on sequence step and lead data\nconst leadData = $json.lead_data || {};\nconst sequenceStep = parseInt($json.sequence_step) || 1;\nconst campaignType = $json.campaign_type || 'general';\nconst landingPageUrl = $json.landing_page_url;\n\n// Define email templates by sequence step\nconst emailTemplates = {\n  1: {\n    subject_templates: [\n      `{{first_name}}, quick question about {{company}}`,\n      `Saw {{company}} in the news - impressive growth!`,\n      `{{first_name}}, this caught my attention about {{industry}}`\n    ],\n    content_type: 'introduction',\n    tone: 'curious',\n    cta_primary: 'View Custom Analysis',\n    cta_secondary: 'Learn More'\n  },\n  2: {\n    subject_templates: [\n      `How {{similar_company}} increased leads by 340%`,\n      `{{first_name}}, success story from {{industry}}`,\n      `Case study: {{company}} might find this interesting`\n    ],\n    content_type: 'social_proof',\n    tone: 'confident',\n    cta_primary: 'See Case Study',\n    cta_secondary: 'Download Report'\n  },\n  3: {\n    subject_templates: [\n      `{{industry}} insights for {{first_name}}`,\n      `Market report: {{industry}} trends for 2024`,\n      `{{first_name}}, exclusive {{industry}} analysis`\n    ],\n    content_type: 'educational',\n    tone: 'informative',\n    cta_primary: 'Read Full Report',\n    cta_secondary: 'Schedule Discussion'\n  },\n  4: {\n    subject_templates: [\n      `Special offer for {{company}}`,\n      `{{first_name}}, limited-time opportunity`,\n      `Exclusive proposal for {{company}}`\n    ],\n    content_type: 'soft_sales',\n    tone: 'professional',\n    cta_primary: 'Claim Offer',\n    cta_secondary: 'Book Demo'\n  },\n  5: {\n    subject_templates: [\n      `Following up, {{first_name}}`,\n      `Last chance for {{company}}`,\n      `Should I close your file, {{first_name}}?`\n    ],\n    content_type: 'follow_up',\n    tone: 'direct',\n    cta_primary: 'Respond Now',\n    cta_secondary: 'Unsubscribe'\n  }\n};\n\n// Get template for current step\nconst template = emailTemplates[sequenceStep] || emailTemplates[1];\n\n// Generate personalization variables\nconst personalizationVars = {\n  first_name: leadData.first_name || 'there',\n  last_name: leadData.last_name || '',\n  company: leadData.company || 'your company',\n  industry: leadData.industry || 'your industry',\n  title: leadData.title || 'professional',\n  similar_company: getIndustrySimilarCompany(leadData.industry),\n  landing_page_url: landingPageUrl\n};\n\n// Select subject line template\nconst subjectTemplate = template.subject_templates[Math.floor(Math.random() * template.subject_templates.length)];\n\n// Generate personalized subject line\nlet subject = subjectTemplate;\nObject.keys(personalizationVars).forEach(key => {\n  const regex = new RegExp(`{{${key}}}`, 'g');\n  subject = subject.replace(regex, personalizationVars[key]);\n});\n\n// Generate email content based on type\nconst emailContent = generateEmailContent(template, personalizationVars, sequenceStep);\n\nfunction getIndustrySimilarCompany(industry) {\n  const companiesByIndustry = {\n    'technology': 'TechCorp Solutions',\n    'healthcare': 'MediCare Partners',\n    'finance': 'Financial Dynamics',\n    'retail': 'RetailMax Group',\n    'manufacturing': 'Industrial Systems',\n    'consulting': 'Strategic Advisors'\n  };\n  return companiesByIndustry[industry?.toLowerCase()] || 'Similar Company';\n}\n\nfunction generateEmailContent(template, vars, step) {\n  const contentTemplates = {\n    introduction: `Hi ${vars.first_name},\n\nI was researching companies in the ${vars.industry} space and came across ${vars.company}. Your recent growth caught my attention.\n\nI've put together a custom analysis showing how companies like yours are generating 3x more qualified leads with our AI-powered system.\n\n${vars.landing_page_url ? `Take a look: ${vars.landing_page_url}` : 'Would you be interested in seeing the results?'}\n\nBest regards,\nThe LeadFly Team`,\n    \n    social_proof: `Hi ${vars.first_name},\n\n${vars.similar_company} was struggling with lead quality - sound familiar?\n\nWithin 90 days of implementing our system:\n• 340% increase in qualified leads\n• 65% reduction in sales cycle time\n• $2.4M additional revenue generated\n\nI think ${vars.company} could see similar results.\n\n${vars.landing_page_url ? `See the full case study: ${vars.landing_page_url}` : 'Want to see how they did it?'}\n\nBest,\nThe LeadFly Team`,\n    \n    educational: `Hi ${vars.first_name},\n\nThe ${vars.industry} landscape is changing rapidly. Companies that adapt their lead generation strategy are seeing 250% better results.\n\nOur latest industry report reveals:\n• Top 3 lead generation mistakes costing ${vars.industry} companies millions\n• The AI automation framework that's driving results\n• Compliance strategies that protect and convert\n\n${vars.landing_page_url ? `Get your copy: ${vars.landing_page_url}` : 'I'd love to share this with you.'}\n\nRegards,\nThe LeadFly Team`,\n    \n    soft_sales: `Hi ${vars.first_name},\n\nI've been working with ${vars.industry} companies for years, and I rarely see an opportunity like this.\n\nFor the next 7 days, we're offering ${vars.company}:\n• Free setup of our AI lead generation system\n• 30-day trial with full features\n• Custom integration with your existing tools\n• Dedicated success manager\n\nThis offer is only available to select companies in ${vars.industry}.\n\n${vars.landing_page_url ? `Claim your spot: ${vars.landing_page_url}` : 'Interested in learning more?'}\n\nBest,\nThe LeadFly Team`,\n    \n    follow_up: `Hi ${vars.first_name},\n\nI shared some resources about AI lead generation for ${vars.company} but haven't heard back.\n\nI understand you're busy, so I'll make this simple:\n\nAre you interested in generating more qualified leads for ${vars.company}?\n\n${vars.landing_page_url ? `If yes, click here: ${vars.landing_page_url}` : 'Just reply with \"yes\" or \"no\".'}\n\nIf not, I'll remove you from my list and won't follow up again.\n\nThanks,\nThe LeadFly Team`\n  };\n  \n  return contentTemplates[template.content_type] || contentTemplates.introduction;\n}\n\nreturn [{\n  json: {\n    template_generated: true,\n    sequence_step: sequenceStep,\n    subject_line: subject,\n    email_content: emailContent,\n    content_type: template.content_type,\n    tone: template.tone,\n    personalization_vars: personalizationVars,\n    cta_primary: template.cta_primary,\n    cta_secondary: template.cta_secondary,\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "email-template-processor",
+      "name": "Email Template Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// HTML email formatting with responsive design\nconst templateData = $json;\nconst subject = templateData.subject_line;\nconst content = templateData.email_content;\nconst ctaPrimary = templateData.cta_primary;\nconst ctaSecondary = templateData.cta_secondary;\nconst landingPageUrl = templateData.personalization_vars.landing_page_url;\n\n// Generate tracking pixel URL\nconst trackingPixel = `https://leadfly-ai.vercel.app/api/tracking/email-open?lead_id={{lead_id}}&sequence_step=${templateData.sequence_step}&timestamp={{timestamp}}`;\n\n// Generate HTML email template\nconst htmlContent = `\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>${subject}</title>\n    <style>\n        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }\n        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }\n        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }\n        .logo { color: #ffffff; font-size: 24px; font-weight: bold; }\n        .content { padding: 40px 30px; }\n        .content p { line-height: 1.6; color: #333333; margin-bottom: 20px; }\n        .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; margin: 20px 0; }\n        .cta-button:hover { opacity: 0.9; }\n        .secondary-cta { color: #667eea; text-decoration: none; font-weight: bold; }\n        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; color: #666666; font-size: 12px; }\n        .unsubscribe { color: #999999; text-decoration: none; }\n        @media only screen and (max-width: 600px) {\n            .container { width: 100% !important; }\n            .content { padding: 20px !important; }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <div class=\"logo\">LeadFly AI</div>\n        </div>\n        <div class=\"content\">\n            ${content.split('\\n').map(paragraph => \n                paragraph.trim() ? `<p>${paragraph.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')}</p>` : ''\n            ).join('')}\n            \n            ${landingPageUrl ? `<p style=\"text-align: center;\"><a href=\"${landingPageUrl}?utm_source=email&utm_campaign=sequence_${templateData.sequence_step}\" class=\"cta-button\">${ctaPrimary}</a></p>` : ''}\n            \n            <p style=\"text-align: center; margin-top: 30px;\">\n                <a href=\"mailto:support@leadfly-ai.com\" class=\"secondary-cta\">${ctaSecondary}</a>\n            </p>\n        </div>\n        <div class=\"footer\">\n            <p>© 2024 LeadFly AI. All rights reserved.</p>\n            <p>\n                <a href=\"{{unsubscribe_url}}\" class=\"unsubscribe\">Unsubscribe</a> | \n                <a href=\"https://leadfly-ai.com/privacy\" class=\"unsubscribe\">Privacy Policy</a>\n            </p>\n            <p>LeadFly AI, 1234 Innovation Drive, Tech City, TC 12345</p>\n        </div>\n    </div>\n    \n    <!-- Tracking Pixel -->\n    <img src=\"${trackingPixel}\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\">\n</body>\n</html>`;\n\n// Generate plain text version\nconst plainTextContent = `\n${content}\n\n${landingPageUrl ? `${ctaPrimary}: ${landingPageUrl}?utm_source=email&utm_campaign=sequence_${templateData.sequence_step}` : ''}\n\nAlternatively: ${ctaSecondary} - mailto:support@leadfly-ai.com\n\n---\nLeadFly AI\n© 2024 LeadFly AI. All rights reserved.\nUnsubscribe: {{unsubscribe_url}}\nPrivacy Policy: https://leadfly-ai.com/privacy\nLeadFly AI, 1234 Innovation Drive, Tech City, TC 12345\n`;\n\n// Compliance check\nconst complianceChecks = {\n  has_unsubscribe: htmlContent.includes('{{unsubscribe_url}}'),\n  has_physical_address: htmlContent.includes('1234 Innovation Drive'),\n  has_company_name: htmlContent.includes('LeadFly AI'),\n  has_privacy_policy: htmlContent.includes('privacy'),\n  subject_length: subject.length <= 50,\n  tracking_pixel_included: htmlContent.includes('tracking/email-open')\n};\n\nconst isCompliant = Object.values(complianceChecks).every(check => check === true);\n\nreturn [{\n  json: {\n    formatting_complete: true,\n    subject_line: subject,\n    html_content: htmlContent,\n    plain_text_content: plainTextContent,\n    compliance_checks: complianceChecks,\n    is_compliant: isCompliant,\n    tracking_pixel_url: trackingPixel,\n    email_size_kb: Math.round((htmlContent.length + plainTextContent.length) / 1024),\n    formatted_at: new Date().toISOString(),\n    sequence_step: templateData.sequence_step,\n    personalization_vars: templateData.personalization_vars\n  }\n}];"
+      },
+      "id": "html-formatter-processor",
+      "name": "HTML Formatter Processor", 
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "compliance_check",
+              "leftValue": "={{$json.is_compliant}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "compliance-validation",
+      "name": "Compliance Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 320]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "compliance_error",
+              "name": "compliance_error",
+              "value": "Email failed compliance checks",
+              "type": "string"
+            },
+            {
+              "id": "failed_checks",
+              "name": "failed_checks",
+              "value": "={{Object.keys($json.compliance_checks).filter(key => !$json.compliance_checks[key])}}",
+              "type": "array"
+            },
+            {
+              "id": "success",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "id": "compliance-error-handler",
+      "name": "Compliance Error Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1200, 520]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/email-sequences",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "save_formatted_email"
+            },
+            {
+              "name": "sequence_id",
+              "value": "={{$json.sequence_id}}"
+            },
+            {
+              "name": "sequence_step",
+              "value": "={{$json.sequence_step}}"
+            },
+            {
+              "name": "subject_line",
+              "value": "={{$json.subject_line}}"
+            },
+            {
+              "name": "html_content",
+              "value": "={{$json.html_content}}"
+            },
+            {
+              "name": "plain_text_content",
+              "value": "={{$json.plain_text_content}}"
+            },
+            {
+              "name": "personalization_vars",
+              "value": "={{$json.personalization_vars}}"
+            },
+            {
+              "name": "ai_generated",
+              "value": true
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "save-formatted-email",
+      "name": "Save Formatted Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 320],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success !== false,\n  sequence_step: $json.sequence_step,\n  subject_line: $json.subject_line,\n  email_formatted: $json.formatting_complete || false,\n  compliance_passed: $json.is_compliant || false,\n  email_size_kb: $json.email_size_kb || 0,\n  personalization_applied: Object.keys($json.personalization_vars || {}).length,\n  error: $json.compliance_error || null,\n  failed_checks: $json.failed_checks || [],\n  generated_at: $json.formatted_at || new Date().toISOString()\n})}}"
+      },
+      "id": "respond-email-webhook",
+      "name": "Respond Email Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1680, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input validation and sequence data preparation\nconst inputData = $input.all()[0].json;\n\n// Validate required fields\nif (!inputData.lead_data) {\n  throw new Error('Missing lead_data');\n}\n\nif (!inputData.sequence_step) {\n  throw new Error('Missing sequence_step');\n}\n\n// Prepare lead data\nconst leadData = inputData.lead_data;\nconst sequenceStep = parseInt(inputData.sequence_step);\n\n// Validate sequence step range\nif (sequenceStep < 1 || sequenceStep > 10) {\n  throw new Error('sequence_step must be between 1 and 10');\n}\n\n// Validate email address\nif (!leadData.email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(leadData.email)) {\n  throw new Error('Invalid or missing email address in lead_data');\n}\n\n// Prepare personalization data\nconst personalizationData = {\n  ...inputData.personalization_data,\n  company_news: inputData.company_news || null,\n  industry_trends: inputData.industry_trends || null,\n  recent_funding: inputData.recent_funding || null,\n  competitor_analysis: inputData.competitor_analysis || null\n};\n\n// Prepare processing data\nconst processingData = {\n  lead_data: leadData,\n  sequence_step: sequenceStep,\n  sequence_id: inputData.sequence_id,\n  campaign_type: inputData.campaign_type || 'general',\n  landing_page_url: inputData.landing_page_url,\n  personalization_data: personalizationData,\n  user_id: inputData.user_id,\n  priority: inputData.priority || 'normal',\n  metadata: {\n    requested_at: new Date().toISOString(),\n    ip_address: inputData.ip_address || 'unknown',\n    user_agent: inputData.user_agent || 'unknown'\n  }\n};\n\nreturn [{ json: processingData }];"
+      },
+      "id": "input-validation-email",
+      "name": "Input Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    }
+  ],
+  "connections": {
+    "Email Formatter Webhook": {
+      "main": [
+        [
+          {
+            "node": "Input Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Validation": {
+      "main": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Email Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Template Generator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Personalization Engine": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance Checker": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Formatter": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Chat": {
+      "main": [
+        [
+          {
+            "node": "Email Template Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Template Processor": {
+      "main": [
+        [
+          {
+            "node": "HTML Formatter Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Formatter Processor": {
+      "main": [
+        [
+          {
+            "node": "Compliance Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance Validation": {
+      "main": [
+        [
+          {
+            "node": "Save Formatted Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compliance Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Email Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Formatted Email": {
+      "main": [
+        [
+          {
+            "node": "Respond Email Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "leadfly-error-handler"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-ai-email-formatter",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "ai-agent",
+      "name": "ai-agent"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "email-formatting",
+      "name": "email-formatting"
+    }
+  ]
+}

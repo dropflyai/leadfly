@@ -1,0 +1,261 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-dark-50 text-dark-900 antialiased;
+    background-image: 
+      radial-gradient(circle at 20% 80%, rgba(12, 147, 227, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(20, 184, 166, 0.1) 0%, transparent 50%);
+  }
+
+  * {
+    @apply border-dark-200/20;
+  }
+}
+
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply relative overflow-hidden bg-electric-gradient text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-glow hover:scale-[1.02] active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply relative overflow-hidden bg-dark-100/50 backdrop-blur-sm border border-dark-200/30 text-dark-800 hover:text-dark-900 font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:bg-dark-100/70 hover:border-electric-500/50 hover:shadow-inner-glow;
+  }
+  
+  .btn-ghost {
+    @apply relative overflow-hidden text-dark-700 hover:text-electric-500 font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:bg-dark-100/30;
+  }
+
+  /* Input fields */
+  .input-field {
+    @apply w-full px-4 py-3 bg-dark-100/30 backdrop-blur-sm border border-dark-300/30 rounded-xl 
+           text-dark-800 placeholder-dark-500 focus:border-electric-400 
+           focus:bg-dark-100/50 focus:outline-none focus:ring-2 focus:ring-electric-400/20 
+           transition-all duration-300 hover:border-dark-400/50;
+  }
+
+  /* Cards */
+  .glass-card {
+    @apply relative bg-dark-100/30 backdrop-blur-xl border border-dark-200/20 rounded-2xl p-6 hover:bg-dark-100/40 hover:border-electric-500/30 transition-all duration-500 hover:shadow-glow-lg;
+  }
+  
+  .neon-card {
+    @apply relative bg-dark-100/20 backdrop-blur-xl border border-neon-500/30 rounded-2xl p-6 shadow-neon hover:shadow-neon hover:border-neon-400/50 transition-all duration-500;
+  }
+  
+  .electric-card {
+    @apply relative bg-dark-100/20 backdrop-blur-xl border border-electric-500/30 rounded-2xl p-6 shadow-glow hover:shadow-glow-lg hover:border-electric-400/50 transition-all duration-500;
+  }
+
+  /* Text Effects */
+  .gradient-text {
+    @apply bg-electric-gradient bg-clip-text text-transparent;
+  }
+  
+  .neon-text {
+    @apply bg-gradient-to-r from-neon-400 to-neon-300 bg-clip-text text-transparent;
+  }
+  
+  .electric-text {
+    @apply bg-gradient-to-r from-electric-400 to-electric-300 bg-clip-text text-transparent;
+  }
+
+  .glow-text {
+    @apply text-electric-400;
+    text-shadow: 0 0 10px rgba(12, 147, 227, 0.5);
+  }
+
+  /* Interactive Elements */
+  .interactive-hover {
+    @apply transform transition-all duration-300 hover:scale-[1.02] hover:shadow-glow-lg cursor-pointer;
+  }
+
+  /* Navigation */
+  .nav-blur {
+    @apply bg-dark-50/80 backdrop-blur-xl border-b border-dark-200/20;
+  }
+
+  /* Gradient Backgrounds */
+  .gradient-bg {
+    background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease-in-out infinite;
+  }
+
+  .electric-bg {
+    background: linear-gradient(135deg, #0c93e3 0%, #a855f7 50%, #14b8a6 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease-in-out infinite;
+  }
+
+  /* Specific gradient utilities */
+  .bg-electric-gradient {
+    @apply bg-gradient-to-r from-electric-500 to-electric-600;
+  }
+  
+  .bg-neon-gradient {
+    @apply bg-gradient-to-r from-neon-500 to-neon-600;
+  }
+  
+  .bg-purple-gradient {
+    @apply bg-gradient-to-r from-purple-500 to-purple-600;
+  }
+
+  /* Gradient Streaks */
+  .gradient-streak {
+    @apply absolute inset-0 opacity-20;
+    background: linear-gradient(45deg, transparent 30%, rgba(12, 147, 227, 0.3) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  .gradient-streak-vertical {
+    @apply absolute inset-0 opacity-10;
+    background: linear-gradient(to bottom, transparent 0%, rgba(168, 85, 247, 0.4) 20%, rgba(12, 147, 227, 0.4) 40%, rgba(20, 184, 166, 0.4) 60%, transparent 100%);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Form Inputs */
+  .input-glass {
+    @apply bg-dark-100/20 border border-dark-200/30 rounded-xl px-4 py-3 text-dark-800 placeholder-dark-500 backdrop-blur-sm focus:bg-dark-100/30 focus:border-electric-500/50 focus:ring-2 focus:ring-electric-500/20 transition-all duration-300;
+  }
+
+  /* Status Indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full animate-pulse;
+  }
+  
+  .status-online {
+    @apply bg-neon-400 shadow-neon;
+  }
+  
+  .status-processing {
+    @apply bg-electric-400 shadow-glow;
+  }
+  
+  .status-warning {
+    @apply bg-yellow-400 shadow-yellow-500/50;
+  }
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glowPulse {
+  from {
+    box-shadow: 0 0 20px rgba(12, 147, 227, 0.3);
+  }
+  to {
+    box-shadow: 0 0 40px rgba(12, 147, 227, 0.6);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(39, 39, 42, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(12, 147, 227, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(12, 147, 227, 0.7);
+}
+
+/* Selection */
+::selection {
+  background: rgba(12, 147, 227, 0.3);
+  color: #e4e4e7;
+}
+
+/* Focus visible */
+.focus-visible {
+  @apply outline-none ring-2 ring-electric-500/50 ring-offset-2 ring-offset-dark-50;
+}

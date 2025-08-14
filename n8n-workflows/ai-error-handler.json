@@ -1,0 +1,572 @@
+{
+  "name": "LeadFly AI - Error Handler & Fallback System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/ai-error-handler",
+        "responseMode": "responseNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "error-handler-webhook",
+      "name": "Error Handler Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 360],
+      "webhookId": "leadfly-ai-error-handler"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1500
+        }
+      },
+      "id": "ai-error-agent",
+      "name": "AI Error Agent",
+      "type": "n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [480, 360],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-key",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "error_analyzer",
+        "description": "Analyzes error patterns and suggests recovery strategies"
+      },
+      "id": "error-analyzer-tool",
+      "name": "Error Analyzer Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 200]
+    },
+    {
+      "parameters": {
+        "name": "fallback_coordinator",
+        "description": "Coordinates fallback workflows when primary systems fail"
+      },
+      "id": "fallback-coordinator-tool",
+      "name": "Fallback Coordinator Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "name": "recovery_planner",
+        "description": "Plans recovery strategies and retry mechanisms"
+      },
+      "id": "recovery-planner-tool",
+      "name": "Recovery Planner Tool",
+      "type": "n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [480, 280]
+    },
+    {
+      "parameters": {
+        "chatMessages": [
+          {
+            "role": "system",
+            "content": "You are the Error Handling and Recovery AI Agent for LeadFly's lead generation system. Your role is to intelligently handle failures, coordinate fallback mechanisms, and ensure system resilience.\n\nCore Responsibilities:\n1. Error Analysis: Classify and analyze errors to determine severity and recovery strategies\n2. Fallback Coordination: Activate appropriate fallback workflows when primary systems fail\n3. Recovery Planning: Develop and execute recovery strategies for failed operations\n4. System Monitoring: Track error patterns and suggest preventive measures\n5. User Communication: Provide clear error messages and status updates\n\nTools Available:\n- error_analyzer: Analyzes error patterns and categorizes failure types\n- fallback_coordinator: Manages fallback workflows and alternative processing paths\n- recovery_planner: Designs recovery strategies and retry mechanisms\n\nError Categories:\n- CRITICAL: System failures requiring immediate attention\n- HIGH: Service disruptions affecting lead processing\n- MEDIUM: Individual operation failures with workarounds available\n- LOW: Minor issues with automatic recovery possible\n\nFallback Strategies:\n- API Failures: Switch to alternative providers or cached data\n- AI Service Issues: Use template-based processing or simplified workflows\n- Database Problems: Queue operations for retry or use read replicas\n- Network Issues: Implement exponential backoff and retry logic\n\nRecovery Priorities:\n1. Preserve lead data integrity\n2. Maintain compliance requirements\n3. Minimize customer impact\n4. Restore service availability\n5. Prevent data loss"
+          },
+          {
+            "role": "user",
+            "content": "Handle error: {{$json.error_type || 'unknown'}}. Error details: {{$json.error_message || 'No details provided'}}. Failed workflow: {{$json.workflow_name || 'unknown'}}. Error context: {{JSON.stringify($json.error_context || {})}}"
+          }
+        ]
+      },
+      "id": "ai-error-chat",
+      "name": "AI Error Chat",
+      "type": "n8n-nodes-langchain.chatOpenAi",
+      "typeVersion": 1,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error classification and severity assessment\nconst errorData = $json;\nconst errorType = errorData.error_type || 'unknown';\nconst errorMessage = errorData.error_message || '';\nconst workflowName = errorData.workflow_name || 'unknown';\nconst errorContext = errorData.error_context || {};\n\n// Error severity classification\nfunction classifyErrorSeverity(errorType, errorMessage, context) {\n  const criticalPatterns = [\n    /database.*connection.*failed/i,\n    /authentication.*failed/i,\n    /api.*key.*invalid/i,\n    /system.*down/i,\n    /memory.*overflow/i,\n    /disk.*full/i\n  ];\n  \n  const highPatterns = [\n    /timeout/i,\n    /rate.*limit/i,\n    /service.*unavailable/i,\n    /ocr.*failed/i,\n    /email.*delivery.*failed/i,\n    /webhook.*failed/i\n  ];\n  \n  const mediumPatterns = [\n    /validation.*failed/i,\n    /format.*error/i,\n    /missing.*parameter/i,\n    /invalid.*input/i,\n    /parsing.*error/i\n  ];\n  \n  // Check for critical errors\n  if (criticalPatterns.some(pattern => pattern.test(errorMessage))) {\n    return 'CRITICAL';\n  }\n  \n  // Check for high priority errors\n  if (highPatterns.some(pattern => pattern.test(errorMessage))) {\n    return 'HIGH';\n  }\n  \n  // Check for medium priority errors\n  if (mediumPatterns.some(pattern => pattern.test(errorMessage))) {\n    return 'MEDIUM';\n  }\n  \n  return 'LOW';\n}\n\n// Determine recovery strategy\nfunction determineRecoveryStrategy(severity, errorType, workflowName) {\n  const strategies = {\n    CRITICAL: {\n      immediate_action: 'alert_admin',\n      fallback_enabled: false,\n      retry_allowed: false,\n      escalation_required: true\n    },\n    HIGH: {\n      immediate_action: 'activate_fallback',\n      fallback_enabled: true,\n      retry_allowed: true,\n      retry_delay: 300, // 5 minutes\n      max_retries: 3\n    },\n    MEDIUM: {\n      immediate_action: 'retry_with_fallback',\n      fallback_enabled: true,\n      retry_allowed: true,\n      retry_delay: 60, // 1 minute\n      max_retries: 5\n    },\n    LOW: {\n      immediate_action: 'auto_retry',\n      fallback_enabled: false,\n      retry_allowed: true,\n      retry_delay: 10, // 10 seconds\n      max_retries: 3\n    }\n  };\n  \n  return strategies[severity] || strategies.LOW;\n}\n\n// Generate fallback workflow mapping\nfunction getFallbackWorkflow(workflowName, errorType) {\n  const fallbackMappings = {\n    'leadfly-ai-master-coordinator': 'leadfly-basic-coordinator',\n    'leadfly-ai-document-processor': 'leadfly-basic-document-processor',\n    'leadfly-ai-email-formatter': 'leadfly-template-email-formatter',\n    'lead-qualification-master': 'basic-lead-processor',\n    'email-engagement-processor': 'simple-engagement-tracker'\n  };\n  \n  return fallbackMappings[workflowName] || 'manual-processing-queue';\n}\n\n// Assess error impact\nfunction assessErrorImpact(severity, workflowName, context) {\n  const impacts = {\n    lead_processing: severity === 'CRITICAL' ? 'blocked' : 'degraded',\n    email_delivery: severity === 'CRITICAL' ? 'stopped' : 'delayed',\n    document_processing: severity === 'CRITICAL' ? 'failed' : 'manual_required',\n    user_experience: severity === 'CRITICAL' ? 'severely_impacted' : 'minor_delays'\n  };\n  \n  return impacts;\n}\n\n// Generate error analysis\nconst severity = classifyErrorSeverity(errorType, errorMessage, errorContext);\nconst recoveryStrategy = determineRecoveryStrategy(severity, errorType, workflowName);\nconst fallbackWorkflow = getFallbackWorkflow(workflowName, errorType);\nconst impact = assessErrorImpact(severity, workflowName, errorContext);\n\n// Create error record\nconst errorRecord = {\n  error_id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n  timestamp: new Date().toISOString(),\n  severity: severity,\n  error_type: errorType,\n  error_message: errorMessage,\n  workflow_name: workflowName,\n  error_context: errorContext,\n  recovery_strategy: recoveryStrategy,\n  fallback_workflow: fallbackWorkflow,\n  impact_assessment: impact,\n  status: 'analyzing',\n  retry_count: errorContext.retry_count || 0\n};\n\nreturn [{\n  json: {\n    error_classified: true,\n    error_record: errorRecord,\n    immediate_action: recoveryStrategy.immediate_action,\n    fallback_required: recoveryStrategy.fallback_enabled,\n    retry_recommended: recoveryStrategy.retry_allowed,\n    escalation_needed: recoveryStrategy.escalation_required || false,\n    processing_priority: severity === 'CRITICAL' ? 'immediate' : severity === 'HIGH' ? 'urgent' : 'normal'\n  }\n}];"
+      },
+      "id": "error-classification",
+      "name": "Error Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "fallback_required",
+              "leftValue": "={{$json.fallback_required}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "fallback-decision",
+      "name": "Fallback Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1200, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "activate_fallback"
+            },
+            {
+              "name": "fallback_workflow",
+              "value": "={{$json.error_record.fallback_workflow}}"
+            },
+            {
+              "name": "original_data",
+              "value": "={{$json.error_record.error_context.original_data}}"
+            },
+            {
+              "name": "error_context",
+              "value": "={{$json.error_record}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "activate-fallback",
+      "name": "Activate Fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "schedule_retry"
+            },
+            {
+              "name": "original_workflow",
+              "value": "={{$json.error_record.workflow_name}}"
+            },
+            {
+              "name": "retry_delay",
+              "value": "={{$json.error_record.recovery_strategy.retry_delay || 60}}"
+            },
+            {
+              "name": "retry_count",
+              "value": "={{$json.error_record.retry_count + 1}}"
+            },
+            {
+              "name": "max_retries",
+              "value": "={{$json.error_record.recovery_strategy.max_retries || 3}}"
+            },
+            {
+              "name": "original_data",
+              "value": "={{$json.error_record.error_context.original_data}}"
+            }
+          ]
+        }
+      },
+      "id": "schedule-retry",
+      "name": "Schedule Retry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 320],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "escalate_error"
+            },
+            {
+              "name": "error_record",
+              "value": "={{$json.error_record}}"
+            },
+            {
+              "name": "escalation_level",
+              "value": "admin"
+            },
+            {
+              "name": "notification_channels",
+              "value": ["email", "slack", "sms"]
+            }
+          ]
+        }
+      },
+      "id": "escalate-error",
+      "name": "Escalate Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 440],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "log_error"
+            },
+            {
+              "name": "error_record",
+              "value": "={{$json.error_record}}"
+            },
+            {
+              "name": "recovery_actions",
+              "value": "={{$json.recovery_actions}}"
+            },
+            {
+              "name": "resolution_status",
+              "value": "={{$json.resolution_status}}"
+            }
+          ]
+        }
+      },
+      "id": "log-error-details",
+      "name": "Log Error Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1680, 320],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.resolution_status !== 'failed',\n  error_id: $json.error_record.error_id,\n  severity: $json.error_record.severity,\n  resolution_status: $json.resolution_status || 'processed',\n  recovery_actions: $json.recovery_actions || [],\n  fallback_activated: $json.fallback_activated || false,\n  retry_scheduled: $json.retry_scheduled || false,\n  escalated: $json.escalated || false,\n  estimated_recovery_time: $json.estimated_recovery_time,\n  next_steps: $json.next_steps || [],\n  processed_at: new Date().toISOString()\n})}}"
+      },
+      "id": "respond-error-webhook",
+      "name": "Respond Error Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recovery action tracking and response preparation\nconst errorRecord = $json.error_record;\nconst allResults = $input.all();\n\n// Track all recovery actions taken\nconst recoveryActions = [];\nlet resolutionStatus = 'unknown';\nlet fallbackActivated = false;\nlet retryScheduled = false;\nlet escalated = false;\nlet estimatedRecoveryTime = null;\n\n// Process results from different recovery paths\nallResults.forEach(result => {\n  const data = result.json;\n  \n  if (data.fallback_response) {\n    recoveryActions.push('fallback_workflow_activated');\n    fallbackActivated = true;\n    resolutionStatus = 'fallback_active';\n    estimatedRecoveryTime = '5-10 minutes';\n  }\n  \n  if (data.retry_scheduled) {\n    recoveryActions.push('retry_scheduled');\n    retryScheduled = true;\n    if (resolutionStatus === 'unknown') {\n      resolutionStatus = 'retry_pending';\n      estimatedRecoveryTime = `${errorRecord.recovery_strategy.retry_delay || 60} seconds`;\n    }\n  }\n  \n  if (data.escalation_sent) {\n    recoveryActions.push('admin_notified');\n    escalated = true;\n    if (errorRecord.severity === 'CRITICAL') {\n      resolutionStatus = 'escalated';\n      estimatedRecoveryTime = '15-30 minutes';\n    }\n  }\n});\n\n// Determine final resolution status\nif (resolutionStatus === 'unknown') {\n  if (errorRecord.severity === 'LOW') {\n    resolutionStatus = 'auto_resolved';\n    estimatedRecoveryTime = 'immediate';\n  } else {\n    resolutionStatus = 'monitoring';\n    estimatedRecoveryTime = '2-5 minutes';\n  }\n}\n\n// Generate next steps\nconst nextSteps = [];\nif (fallbackActivated) {\n  nextSteps.push('Monitor fallback workflow performance');\n  nextSteps.push('Retry primary workflow when service recovers');\n}\nif (retryScheduled) {\n  nextSteps.push(`Retry attempt in ${errorRecord.recovery_strategy.retry_delay || 60} seconds`);\n}\nif (escalated) {\n  nextSteps.push('Wait for admin intervention');\n  nextSteps.push('Check system status updates');\n}\nif (nextSteps.length === 0) {\n  nextSteps.push('Continue monitoring system health');\n}\n\nreturn [{\n  json: {\n    error_record: errorRecord,\n    recovery_actions: recoveryActions,\n    resolution_status: resolutionStatus,\n    fallback_activated: fallbackActivated,\n    retry_scheduled: retryScheduled,\n    escalated: escalated,\n    estimated_recovery_time: estimatedRecoveryTime,\n    next_steps: nextSteps,\n    handled_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "recovery-tracking",
+      "name": "Recovery Tracking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input validation and error data preparation\nconst inputData = $input.all()[0].json;\n\n// Validate required error fields\nif (!inputData.error_message && !inputData.error_type) {\n  throw new Error('Missing error_message or error_type');\n}\n\n// Extract error context\nconst errorContext = {\n  ...inputData.error_context,\n  timestamp: inputData.timestamp || new Date().toISOString(),\n  user_id: inputData.user_id,\n  lead_id: inputData.lead_id,\n  workflow_execution_id: inputData.workflow_execution_id,\n  node_name: inputData.node_name,\n  original_data: inputData.original_data,\n  retry_count: inputData.retry_count || 0,\n  previous_errors: inputData.previous_errors || []\n};\n\n// Prepare error processing data\nconst errorProcessingData = {\n  error_type: inputData.error_type || 'unknown_error',\n  error_message: inputData.error_message || 'No error message provided',\n  workflow_name: inputData.workflow_name || 'unknown_workflow',\n  error_context: errorContext,\n  severity_hint: inputData.severity_hint || null,\n  user_id: inputData.user_id,\n  priority: inputData.priority || 'normal',\n  source: inputData.source || 'workflow_execution',\n  metadata: {\n    received_at: new Date().toISOString(),\n    processing_version: '1.0.0',\n    error_handler_agent: 'ai_error_handler'\n  }\n};\n\nreturn [{ json: errorProcessingData }];"
+      },
+      "id": "input-validation-error",
+      "name": "Input Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    }
+  ],
+  "connections": {
+    "Error Handler Webhook": {
+      "main": [
+        [
+          {
+            "node": "Input Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Validation": {
+      "main": [
+        [
+          {
+            "node": "AI Error Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Error Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Error Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Analyzer Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Error Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Coordinator Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Error Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recovery Planner Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Error Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Error Chat": {
+      "main": [
+        [
+          {
+            "node": "Error Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Classification": {
+      "main": [
+        [
+          {
+            "node": "Fallback Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Decision": {
+      "main": [
+        [
+          {
+            "node": "Activate Fallback",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Schedule Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Schedule Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Activate Fallback": {
+      "main": [
+        [
+          {
+            "node": "Recovery Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Retry": {
+      "main": [
+        [
+          {
+            "node": "Recovery Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate Error": {
+      "main": [
+        [
+          {
+            "node": "Recovery Tracking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recovery Tracking": {
+      "main": [
+        [
+          {
+            "node": "Log Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error Details": {
+      "main": [
+        [
+          {
+            "node": "Respond Error Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": null
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-ai-error-handler",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "ai-agent",
+      "name": "ai-agent"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "error-handling",
+      "name": "error-handling"
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "name": "LeadFly AI - Basic Coordinator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/basic-ai-coordinator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "id": "basic-ai-webhook",
+      "name": "Basic AI Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Basic AI coordination with error handling and security\nconst inputData = $json;\n\n// Input validation\nif (!inputData.task_type) {\n  throw new Error('Missing required field: task_type');\n}\n\nconst taskType = inputData.task_type;\nconst userId = inputData.user_id || 'anonymous';\nconst timestamp = new Date().toISOString();\n\n// Security validation\nfunction validateInput(data) {\n  const allowedTasks = ['lead_processing', 'document_processing', 'email_formatting', 'security_validation'];\n  if (!allowedTasks.includes(data.task_type)) {\n    return { valid: false, reason: 'invalid_task_type' };\n  }\n  \n  // Basic XSS protection\n  const sanitize = (str) => {\n    if (typeof str !== 'string') return str;\n    return str.replace(/<script[^>]*>.*?<\\/script>/gi, '')\n              .replace(/<[^>]*>/g, '')\n              .trim();\n  };\n  \n  Object.keys(data).forEach(key => {\n    if (typeof data[key] === 'string') {\n      data[key] = sanitize(data[key]);\n    }\n  });\n  \n  return { valid: true, sanitized: data };\n}\n\n// Validate and sanitize input\nconst validation = validateInput(inputData);\nif (!validation.valid) {\n  throw new Error(`Validation failed: ${validation.reason}`);\n}\n\nconst sanitizedData = validation.sanitized;\n\n// AI Coordination Logic\nlet coordinationResult = {\n  success: true,\n  task_type: taskType,\n  user_id: userId,\n  timestamp: timestamp,\n  coordination_method: 'basic_ai',\n  security_validated: true,\n  processing_priority: 'normal'\n};\n\n// Route based on task type\nswitch(taskType) {\n  case 'lead_processing':\n    coordinationResult.next_actions = [\n      'validate_lead_data',\n      'enrich_lead_information', \n      'score_lead_quality',\n      'route_to_automation'\n    ];\n    coordinationResult.expected_outputs = ['lead_score', 'qualification_status', 'next_steps'];\n    coordinationResult.fallback_strategy = 'basic_lead_processing';\n    break;\n    \n  case 'document_processing':\n    coordinationResult.next_actions = [\n      'validate_document_format',\n      'extract_text_content',\n      'parse_structured_data',\n      'validate_extracted_data'\n    ];\n    coordinationResult.expected_outputs = ['extracted_text', 'structured_data', 'confidence_score'];\n    coordinationResult.fallback_strategy = 'manual_review_queue';\n    break;\n    \n  case 'email_formatting':\n    coordinationResult.next_actions = [\n      'load_email_template',\n      'personalize_content',\n      'validate_compliance',\n      'format_for_delivery'\n    ];\n    coordinationResult.expected_outputs = ['formatted_email', 'subject_line', 'compliance_status'];\n    coordinationResult.fallback_strategy = 'template_based_formatting';\n    break;\n    \n  case 'security_validation':\n    coordinationResult.next_actions = [\n      'authenticate_request',\n      'authorize_operation',\n      'sanitize_data',\n      'log_security_event'\n    ];\n    coordinationResult.expected_outputs = ['auth_status', 'permission_level', 'security_score'];\n    coordinationResult.fallback_strategy = 'deny_access';\n    break;\n    \n  default:\n    coordinationResult.next_actions = ['general_processing'];\n    coordinationResult.fallback_strategy = 'manual_review';\n}\n\n// Add lead data processing if provided\nif (sanitizedData.lead_data) {\n  coordinationResult.lead_validation = {\n    has_email: !!(sanitizedData.lead_data.email),\n    has_name: !!(sanitizedData.lead_data.first_name || sanitizedData.lead_data.name),\n    has_company: !!(sanitizedData.lead_data.company),\n    data_quality: 'pending_analysis'\n  };\n  \n  // Basic lead scoring\n  let score = 0;\n  if (sanitizedData.lead_data.email) score += 30;\n  if (sanitizedData.lead_data.first_name) score += 20;\n  if (sanitizedData.lead_data.company) score += 25;\n  if (sanitizedData.lead_data.title) score += 15;\n  if (sanitizedData.lead_data.phone) score += 10;\n  \n  coordinationResult.preliminary_lead_score = score;\n  coordinationResult.lead_quality = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';\n}\n\n// Error handling setup\ncoordinationResult.error_handling = {\n  retry_enabled: true,\n  max_retries: 3,\n  fallback_available: true,\n  escalation_threshold: 'high'\n};\n\n// Add processing metadata\ncoordinationResult.metadata = {\n  processed_at: timestamp,\n  coordination_version: '1.0.0',\n  security_level: 'basic',\n  estimated_completion: new Date(Date.now() + 30000).toISOString() // 30 seconds\n};\n\nreturn [{ json: coordinationResult }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "basic-ai-processor",
+      "name": "Basic AI Processor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "coordination-success-check",
+      "name": "Coordination Success?"
+    },
+    {
+      "parameters": {
+        "url": "https://leadfly-ai.vercel.app/api/automation/lead-processor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-leadfly-api-key-placeholder-for-testing"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "ai_coordination_result"
+            },
+            {
+              "name": "coordination_result",
+              "value": "={{$json}}"
+            },
+            {
+              "name": "task_type",
+              "value": "={{$json.task_type}}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{$json.user_id}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 200],
+      "id": "call-leadfly-success",
+      "name": "Call LeadFly API - Success"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handling and fallback processing\nconst errorData = $json;\n\nconst fallbackResponse = {\n  success: false,\n  error_handled: true,\n  fallback_activated: true,\n  original_task: errorData.task_type || 'unknown',\n  error_message: 'Coordination failed - using fallback processing',\n  fallback_strategy: 'manual_queue',\n  next_steps: [\n    'Queue for manual review',\n    'Send notification to admin',\n    'Log error for analysis'\n  ],\n  estimated_resolution: '15-30 minutes',\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: fallbackResponse }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "id": "error-fallback-handler",
+      "name": "Error Fallback Handler"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success || false,\n  coordination_complete: true,\n  task_type: $json.task_type,\n  processing_method: $json.coordination_method || 'fallback',\n  next_actions: $json.next_actions || [],\n  fallback_used: $json.fallback_activated || false,\n  estimated_completion: $json.metadata?.estimated_completion || new Date().toISOString(),\n  timestamp: new Date().toISOString()\n})}}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "id": "respond-basic-webhook",
+      "name": "Respond Basic Webhook"
+    }
+  ],
+  "connections": {
+    "Basic AI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic AI Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic AI Processor": {
+      "main": [
+        [
+          {
+            "node": "Coordination Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coordination Success?": {
+      "main": [
+        [
+          {
+            "node": "Call LeadFly API - Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Fallback Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LeadFly API - Success": {
+      "main": [
+        [
+          {
+            "node": "Respond Basic Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Fallback Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond Basic Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

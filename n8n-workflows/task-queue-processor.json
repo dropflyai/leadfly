@@ -1,0 +1,501 @@
+{
+  "name": "LeadFly - Task Queue Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */5 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "process_pending_tasks"
+            },
+            {
+              "name": "batch_size",
+              "value": 50
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "process-pending-tasks",
+      "name": "Process Pending Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.processed_count}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "tasks-processed",
+      "name": "Tasks Processed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Analyze task processing results\nconst results = $json.results || [];\nconst successCount = $json.success_count || 0;\nconst failureCount = $json.failure_count || 0;\nconst processedCount = $json.processed_count || 0;\n\n// Categorize task types\nconst taskTypes = {};\nconst errors = [];\n\nresults.forEach(result => {\n  const taskType = result.task_type;\n  if (!taskTypes[taskType]) {\n    taskTypes[taskType] = { success: 0, failed: 0 };\n  }\n  \n  if (result.status === 'completed') {\n    taskTypes[taskType].success++;\n  } else {\n    taskTypes[taskType].failed++;\n    if (result.error) {\n      errors.push({\n        task_id: result.task_id,\n        task_type: taskType,\n        error: result.error\n      });\n    }\n  }\n});\n\n// Calculate success rate\nconst successRate = processedCount > 0 ? Math.round((successCount / processedCount) * 100) : 100;\n\nconst summary = {\n  processed_count: processedCount,\n  success_count: successCount,\n  failure_count: failureCount,\n  success_rate: successRate,\n  task_types: taskTypes,\n  errors: errors,\n  timestamp: new Date().toISOString(),\n  needs_attention: failureCount > 0 || successRate < 90\n};\n\nreturn { summary };"
+      },
+      "id": "analyze-task-results",
+      "name": "Analyze Task Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.summary.needs_attention}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "needs-attention",
+      "name": "Needs Attention?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create alert for task processing issues\nconst summary = $json.summary;\n\nconst alert = {\n  type: 'task_processing_alert',\n  title: '⚠️ Task Processing Issues Detected',\n  message: `Task processing completed with ${summary.failure_count} failures (${summary.success_rate}% success rate)`,\n  priority: summary.success_rate < 80 ? 'high' : 'medium',\n  data: {\n    processed: summary.processed_count,\n    failed: summary.failure_count,\n    success_rate: summary.success_rate,\n    task_types: summary.task_types,\n    recent_errors: summary.errors.slice(0, 3), // Show first 3 errors\n    needs_investigation: summary.success_rate < 90\n  },\n  timestamp: summary.timestamp\n};\n\nreturn { alert };"
+      },
+      "id": "create-processing-alert",
+      "name": "Create Processing Alert",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1340, 120]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log successful processing summary\nconst summary = $json.summary;\n\nconst log = {\n  type: 'task_processing_success',\n  message: `Successfully processed ${summary.processed_count} tasks (${summary.success_rate}% success rate)`,\n  data: {\n    processed: summary.processed_count,\n    success_rate: summary.success_rate,\n    task_breakdown: summary.task_types\n  },\n  timestamp: summary.timestamp\n};\n\nreturn { log };"
+      },
+      "id": "log-success-summary",
+      "name": "Log Success Summary",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1340, 280]
+    },
+    {
+      "parameters": {
+        "functionCode": "// No tasks to process - check queue health\nconst timestamp = new Date().toISOString();\n\nreturn {\n  queue_check: true,\n  timestamp: timestamp,\n  message: 'No pending tasks found - checking queue health'\n};"
+      },
+      "id": "check-queue-health",
+      "name": "Check Queue Health",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "httpMethod": "GET",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "queue_status"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        }
+      },
+      "id": "get-queue-status",
+      "name": "Get Queue Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.queue_status?.overdue_tasks || 0}}",
+              "operation": "larger",
+              "value2": 10
+            }
+          ]
+        }
+      },
+      "id": "has-overdue-tasks",
+      "name": "Has Many Overdue Tasks?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create alert for too many overdue tasks\nconst queueStatus = $json.queue_status;\nconst overdueCount = queueStatus?.overdue_tasks || 0;\n\nconst alert = {\n  type: 'overdue_tasks_alert',\n  title: '🚨 High Number of Overdue Tasks',\n  message: `${overdueCount} tasks are overdue - system may be experiencing issues`,\n  priority: 'high',\n  data: {\n    overdue_tasks: overdueCount,\n    total_tasks: queueStatus?.total_tasks || 0,\n    status_breakdown: queueStatus?.by_status || {},\n    requires_investigation: true\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn { alert };"
+      },
+      "id": "create-overdue-alert",
+      "name": "Create Overdue Alert",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Send alert/notification to monitoring systems\nconst alert = $json.alert;\nconst log = $json.log;\n\nif (!alert && !log) {\n  return { skipped: true, reason: 'No alert or log to send' };\n}\n\nconst notification = alert || log;\n\n// In production, this would integrate with:\n// - Monitoring dashboards (Grafana, DataDog)\n// - Alerting systems (PagerDuty, Opsgenie)\n// - Slack/Teams webhooks\n// - Log aggregation (Elasticsearch, Splunk)\n\nconst channels = [];\n\nif (alert) {\n  if (alert.priority === 'high') {\n    channels.push('pagerduty', 'slack', 'email');\n  } else {\n    channels.push('slack');\n  }\n} else {\n  channels.push('monitoring_dashboard');\n}\n\nreturn {\n  notification_sent: true,\n  channels: channels,\n  notification: notification,\n  sent_at: new Date().toISOString()\n};"
+      },
+      "id": "send-monitoring-alerts",
+      "name": "Send Monitoring Alerts",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 */6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cleanup-schedule",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 600]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "cleanup_completed_tasks"
+            }
+          ]
+        }
+      },
+      "id": "cleanup-completed-tasks",
+      "name": "Cleanup Completed Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "get_task_statistics"
+            }
+          ]
+        }
+      },
+      "id": "get-task-statistics",
+      "name": "Get Task Statistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create daily statistics report\nconst stats = $json.statistics;\nconst cleanup = $previousNode.json;\n\nconst report = {\n  type: 'daily_task_report',\n  title: '📊 Daily Task Processing Report',\n  data: {\n    period: 'last_7_days',\n    total_tasks: stats?.total_week || 0,\n    success_rate: stats?.success_rate || 0,\n    task_breakdown: stats?.by_type || {},\n    status_breakdown: stats?.by_status || {},\n    cleanup_summary: {\n      completed_tasks_removed: cleanup?.deleted_count || 0\n    },\n    system_health: stats?.success_rate >= 95 ? 'excellent' : \n                   stats?.success_rate >= 90 ? 'good' : \n                   stats?.success_rate >= 80 ? 'fair' : 'poor'\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn { report };"
+      },
+      "id": "create-daily-report",
+      "name": "Create Daily Report",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 600]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Process Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Pending Tasks": {
+      "main": [
+        [
+          {
+            "node": "Tasks Processed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tasks Processed?": {
+      "main": [
+        [
+          {
+            "node": "Analyze Task Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Queue Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Task Results": {
+      "main": [
+        [
+          {
+            "node": "Needs Attention?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Attention?": {
+      "main": [
+        [
+          {
+            "node": "Create Processing Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Success Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Processing Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Monitoring Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Success Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Monitoring Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Queue Health": {
+      "main": [
+        [
+          {
+            "node": "Get Queue Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Queue Status": {
+      "main": [
+        [
+          {
+            "node": "Has Many Overdue Tasks?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Many Overdue Tasks?": {
+      "main": [
+        [
+          {
+            "node": "Create Overdue Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Overdue Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Monitoring Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Cleanup Completed Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup Completed Tasks": {
+      "main": [
+        [
+          {
+            "node": "Get Task Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Task Statistics": {
+      "main": [
+        [
+          {
+            "node": "Create Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Daily Report": {
+      "main": [
+        [
+          {
+            "node": "Send Monitoring Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-task-processor",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "task-queue",
+      "name": "task-queue"
+    }
+  ]
+}

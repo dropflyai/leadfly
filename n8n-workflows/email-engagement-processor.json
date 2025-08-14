@@ -1,0 +1,394 @@
+{
+  "name": "LeadFly - Email Engagement Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/webhook/email-engagement",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "email-engagement-webhook",
+      "name": "Email Engagement Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "leadfly-email-engagement"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process email engagement webhook data\nconst webhookData = $json.body;\nconst headers = $json.headers;\n\n// Determine email provider\nconst provider = headers['x-email-provider'] || \n                headers['user-agent']?.toLowerCase().includes('sendgrid') ? 'sendgrid' :\n                headers['user-agent']?.toLowerCase().includes('mailgun') ? 'mailgun' :\n                headers['user-agent']?.toLowerCase().includes('postmark') ? 'postmark' :\n                'generic';\n\n// Parse engagement events based on provider\nlet events = [];\n\nif (provider === 'sendgrid') {\n  events = Array.isArray(webhookData) ? webhookData : [webhookData];\n  events = events.map(event => ({\n    event_type: event.event,\n    email: event.email,\n    timestamp: new Date(event.timestamp * 1000).toISOString(),\n    message_id: event.sg_message_id,\n    url: event.url,\n    user_agent: event.useragent,\n    ip_address: event.ip,\n    provider: 'sendgrid'\n  }));\n} else if (provider === 'mailgun') {\n  const eventData = webhookData['event-data'] || webhookData;\n  events = [{\n    event_type: eventData.event,\n    email: eventData.recipient,\n    timestamp: new Date(eventData.timestamp * 1000).toISOString(),\n    message_id: eventData.message?.headers?.['message-id'],\n    url: eventData.url,\n    user_agent: eventData['client-info']?.['user-agent'],\n    ip_address: eventData['client-info']?.['client-ip'],\n    provider: 'mailgun'\n  }];\n} else {\n  // Generic format\n  events = [{\n    event_type: webhookData.event_type || webhookData.type,\n    email: webhookData.email || webhookData.recipient,\n    timestamp: webhookData.timestamp || new Date().toISOString(),\n    message_id: webhookData.message_id,\n    url: webhookData.url,\n    provider: 'generic'\n  }];\n}\n\n// Filter valid events\nconst validEvents = events.filter(event => \n  event.email && \n  event.event_type && \n  ['delivered', 'opened', 'clicked', 'bounced', 'unsubscribed', 'complained'].includes(event.event_type)\n);\n\nreturn {\n  provider,\n  events: validEvents,\n  total_events: validEvents.length\n};"
+      },
+      "id": "process-engagement-data",
+      "name": "Process Engagement Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.total_events}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "has-valid-events",
+      "name": "Has Valid Events?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Split events for individual processing\nconst events = $json.events;\nconst results = [];\n\nfor (const event of events) {\n  results.push({\n    event,\n    webhook_url: `${$env.LEADFLY_API_URL}/api/webhooks/email-engagement`,\n    process_individually: true\n  });\n}\n\nreturn results;"
+      },
+      "id": "split-events",
+      "name": "Split Events",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.webhook_url}}",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-email-provider",
+              "value": "={{$json.event.provider}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "event_type",
+              "value": "={{$json.event.event_type}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$json.event.email}}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{$json.event.timestamp}}"
+            },
+            {
+              "name": "message_id",
+              "value": "={{$json.event.message_id}}"
+            },
+            {
+              "name": "url",
+              "value": "={{$json.event.url}}"
+            },
+            {
+              "name": "user_agent",
+              "value": "={{$json.event.user_agent}}"
+            },
+            {
+              "name": "ip_address",
+              "value": "={{$json.event.ip_address}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "process-individual-event",
+      "name": "Process Individual Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.event.event_type}}",
+              "operation": "equal",
+              "value2": "clicked"
+            }
+          ]
+        }
+      },
+      "id": "is-high-value-engagement",
+      "name": "High Value Engagement?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-scoring",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "update_engagement_score"
+            },
+            {
+              "name": "lead_email",
+              "value": "={{$json.event.email}}"
+            },
+            {
+              "name": "engagement_data",
+              "value": "={{JSON.stringify({\n  event_type: $json.event.event_type,\n  timestamp: $json.event.timestamp,\n  metadata: {\n    url: $json.event.url,\n    user_agent: $json.event.user_agent,\n    provider: $json.event.provider\n  }\n})}}"
+            }
+          ]
+        }
+      },
+      "id": "trigger-immediate-scoring",
+      "name": "Trigger Immediate Scoring",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1560, 120]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "minutes"
+      },
+      "id": "wait-30-minutes",
+      "name": "Wait 30 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1560, 280]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-scoring",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "qualify_warm_leads"
+            }
+          ]
+        }
+      },
+      "id": "check-warm-qualification",
+      "name": "Check Warm Qualification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1780, 280]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log processed events summary\nconst events = $json.events || [];\nconst summary = {\n  total_processed: events.length,\n  event_types: {},\n  emails_affected: new Set(),\n  high_value_events: 0\n};\n\nevents.forEach(event => {\n  summary.event_types[event.event_type] = (summary.event_types[event.event_type] || 0) + 1;\n  summary.emails_affected.add(event.email);\n  \n  if (['clicked', 'replied'].includes(event.event_type)) {\n    summary.high_value_events++;\n  }\n});\n\nsummary.unique_emails = summary.emails_affected.size;\ndelete summary.emails_affected; // Convert Set to number\n\nreturn {\n  success: true,\n  summary,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "log-processing-summary",
+      "name": "Log Processing Summary",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success || false,\n  message: $json.success ? 'Email engagement events processed successfully' : 'No valid events to process',\n  events_processed: $json.summary?.total_processed || 0,\n  high_value_events: $json.summary?.high_value_events || 0,\n  unique_emails: $json.summary?.unique_emails || 0\n})}}"
+      },
+      "id": "respond-engagement-webhook",
+      "name": "Respond to Engagement Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Email Engagement Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Engagement Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Engagement Data": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Events?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Events?": {
+      "main": [
+        [
+          {
+            "node": "Split Events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Processing Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Events": {
+      "main": [
+        [
+          {
+            "node": "Process Individual Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Individual Event": {
+      "main": [
+        [
+          {
+            "node": "Is High Value Engagement?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is High Value Engagement?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Immediate Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Immediate Scoring": {
+      "main": [
+        [
+          {
+            "node": "Respond to Engagement Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Check Warm Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Warm Qualification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Engagement Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Processing Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond to Engagement Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-email-engagement",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "email",
+      "name": "email"
+    }
+  ]
+}

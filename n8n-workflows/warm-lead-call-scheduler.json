@@ -1,0 +1,423 @@
+{
+  "name": "LeadFly - Warm Lead Call Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-scoring",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "qualify_warm_leads"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "check-warm-leads",
+      "name": "Check for Warm Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.qualified_count}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "has-warm-leads",
+      "name": "Found Warm Leads?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Process each qualified warm lead\nconst qualifiedLeads = $json.qualified_leads || [];\nconst results = [];\n\nfor (const lead of qualifiedLeads) {\n  results.push({\n    lead_id: lead.lead_id,\n    lead_name: lead.name,\n    company: lead.company,\n    score: lead.score,\n    priority: lead.score >= 85 ? 'high' : 'medium',\n    call_scheduler_url: `${$env.LEADFLY_API_URL}/api/automation/call-scheduler`\n  });\n}\n\nreturn results;"
+      },
+      "id": "process-warm-leads",
+      "name": "Process Warm Leads",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.call_scheduler_url}}",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "schedule_warm_call"
+            },
+            {
+              "name": "lead_id",
+              "value": "={{$json.lead_id}}"
+            },
+            {
+              "name": "call_data",
+              "value": "={{JSON.stringify({\n  priority: $json.priority,\n  qualification_score: $json.score,\n  auto_scheduled: true,\n  scheduler: 'n8n-automation'\n})}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "schedule-warm-call",
+      "name": "Schedule Warm Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "call-scheduled-successfully",
+      "name": "Call Scheduled Successfully?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create success notification\nconst callId = $json.call_id;\nconst scheduledTime = $json.scheduled_time;\nconst leadData = $previousNode.json;\n\nconst notification = {\n  type: 'warm_call_scheduled',\n  title: '📞 Warm Lead Call Scheduled',\n  message: `Call scheduled with ${leadData.lead_name} from ${leadData.company} (Score: ${leadData.score}/100)`,\n  priority: leadData.priority,\n  data: {\n    call_id: callId,\n    lead_id: leadData.lead_id,\n    scheduled_time: scheduledTime,\n    score: leadData.score\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn { notification, success: true };"
+      },
+      "id": "create-success-notification",
+      "name": "Create Success Notification",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1560, 120]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create error notification\nconst error = $json.error || 'Unknown error';\nconst leadData = $previousNode.json;\n\nconst notification = {\n  type: 'call_scheduling_failed',\n  title: '❌ Call Scheduling Failed',\n  message: `Failed to schedule call with ${leadData.lead_name}: ${error}`,\n  priority: 'high',\n  data: {\n    lead_id: leadData.lead_id,\n    error: error,\n    retry_needed: true\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn { notification, success: false };"
+      },
+      "id": "create-error-notification",
+      "name": "Create Error Notification",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1560, 280]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check for overdue scheduled calls that need follow-up\nconst now = new Date();\nconst fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);\n\nreturn {\n  check_overdue_calls: true,\n  cutoff_time: fourHoursAgo.toISOString(),\n  current_time: now.toISOString()\n};"
+      },
+      "id": "check-overdue-calls",
+      "name": "Check Overdue Calls",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/call-scheduler",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "get_overdue_calls"
+            },
+            {
+              "name": "cutoff_time",
+              "value": "={{$json.cutoff_time}}"
+            }
+          ]
+        }
+      },
+      "id": "get-overdue-calls",
+      "name": "Get Overdue Calls",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.overdue_count || 0}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "has-overdue-calls",
+      "name": "Has Overdue Calls?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Create alert for overdue calls\nconst overdueCount = $json.overdue_count || 0;\nconst overdueCalls = $json.overdue_calls || [];\n\nconst alert = {\n  type: 'overdue_calls_alert',\n  title: '⚠️ Overdue Calls Alert',\n  message: `${overdueCount} scheduled calls are overdue and need attention`,\n  priority: 'high',\n  data: {\n    overdue_count: overdueCount,\n    overdue_calls: overdueCalls.slice(0, 5), // Show first 5\n    needs_immediate_action: true\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn { alert };"
+      },
+      "id": "create-overdue-alert",
+      "name": "Create Overdue Alert",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Send notification to appropriate channels\nconst notification = $json.notification || $json.alert;\n\nif (!notification) {\n  return { skipped: true, reason: 'No notification to send' };\n}\n\n// In production, this would integrate with:\n// - Slack webhook\n// - Teams webhook\n// - SMS service\n// - Email notifications\n// - Push notifications\n\nconst channels = [];\n\n// High priority notifications go to multiple channels\nif (notification.priority === 'high') {\n  channels.push('slack', 'email', 'sms');\n} else {\n  channels.push('slack');\n}\n\nreturn {\n  notification_sent: true,\n  channels: channels,\n  notification: notification,\n  sent_at: new Date().toISOString()\n};"
+      },
+      "id": "send-notifications",
+      "name": "Send Notifications",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Check for Warm Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Warm Leads": {
+      "main": [
+        [
+          {
+            "node": "Found Warm Leads?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Found Warm Leads?": {
+      "main": [
+        [
+          {
+            "node": "Process Warm Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Overdue Calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Warm Leads": {
+      "main": [
+        [
+          {
+            "node": "Schedule Warm Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Warm Call": {
+      "main": [
+        [
+          {
+            "node": "Call Scheduled Successfully?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Scheduled Successfully?": {
+      "main": [
+        [
+          {
+            "node": "Create Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Success Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Error Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Overdue Calls": {
+      "main": [
+        [
+          {
+            "node": "Get Overdue Calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Overdue Calls": {
+      "main": [
+        [
+          {
+            "node": "Has Overdue Calls?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Overdue Calls?": {
+      "main": [
+        [
+          {
+            "node": "Create Overdue Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Overdue Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-call-scheduler",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "calls",
+      "name": "calls"
+    }
+  ]
+}

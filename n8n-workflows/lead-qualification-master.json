@@ -1,0 +1,351 @@
+{
+  "name": "LeadFly - Lead Qualification Master",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadfly/webhook/new-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-new-lead",
+      "name": "New Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "leadfly-new-lead"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract and validate lead data\nconst leadData = $json.body;\n\n// Validate required fields\nif (!leadData.email || !leadData.user_id) {\n  throw new Error('Missing required fields: email, user_id');\n}\n\n// Clean and structure lead data\nconst processedLead = {\n  user_id: leadData.user_id,\n  first_name: leadData.first_name?.trim() || '',\n  last_name: leadData.last_name?.trim() || '',\n  email: leadData.email.toLowerCase().trim(),\n  phone: leadData.phone?.replace(/[^\\d+]/g, '') || null,\n  company: leadData.company?.trim() || '',\n  title: leadData.title?.trim() || '',\n  linkedin_url: leadData.linkedin_url || '',\n  industry: leadData.industry || '',\n  company_size: leadData.company_size || '',\n  location: leadData.location || '',\n  source: leadData.source || 'n8n-workflow',\n  campaign_id: leadData.campaign_id || null\n};\n\n// Add processing timestamp\nprocessedLead.processed_at = new Date().toISOString();\n\nreturn { lead: processedLead };"
+      },
+      "id": "process-lead-data",
+      "name": "Process Lead Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/lead-processor",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{$json.lead.user_id}}"
+            },
+            {
+              "name": "lead_data",
+              "value": "={{$json.lead}}"
+            },
+            {
+              "name": "campaign_id",
+              "value": "={{$json.lead.campaign_id}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "start-qualification",
+      "name": "Start Lead Qualification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "leadfly-api-auth",
+          "name": "LeadFly API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-qualification-success",
+      "name": "Qualification Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Wait 5 minutes before starting email sequence\nconst leadId = $json.lead_id;\nconst sequenceId = $json.email_sequence?.id;\n\nif (!leadId || !sequenceId) {\n  throw new Error('Missing lead_id or sequence_id from qualification response');\n}\n\n// Schedule first email immediately\nconst emailTask = {\n  sequence_id: sequenceId,\n  step_number: 1,\n  scheduled_at: new Date().toISOString(),\n  lead_id: leadId\n};\n\n// Schedule follow-up scoring in 24 hours\nconst scoringTask = {\n  lead_id: leadId,\n  scheduled_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),\n  task_type: 'score_update'\n};\n\nreturn {\n  email_task: emailTask,\n  scoring_task: scoringTask,\n  lead_id: leadId\n};"
+      },
+      "id": "schedule-email-sequence",
+      "name": "Schedule Email Sequence",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/email-sequences",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "send_email"
+            },
+            {
+              "name": "sequence_id",
+              "value": "={{$json.email_task.sequence_id}}"
+            },
+            {
+              "name": "step_number",
+              "value": "={{$json.email_task.step_number}}"
+            }
+          ]
+        }
+      },
+      "id": "send-first-email",
+      "name": "Send First Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 120]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LEADFLY_API_URL}}/api/automation/task-processor",
+        "httpMethod": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.LEADFLY_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "schedule_task"
+            },
+            {
+              "name": "task_type",
+              "value": "={{$json.scoring_task.task_type}}"
+            },
+            {
+              "name": "lead_id",
+              "value": "={{$json.scoring_task.lead_id}}"
+            },
+            {
+              "name": "scheduled_at",
+              "value": "={{$json.scoring_task.scheduled_at}}"
+            }
+          ]
+        }
+      },
+      "id": "schedule-scoring-task",
+      "name": "Schedule Scoring Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 280]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log error and create notification for failed qualification\nconst error = $json.error || 'Unknown qualification error';\nconst leadData = $json.lead_data;\n\nconst errorLog = {\n  timestamp: new Date().toISOString(),\n  error_type: 'lead_qualification_failed',\n  error_message: error,\n  lead_email: leadData?.email,\n  user_id: leadData?.user_id,\n  retry_needed: true\n};\n\nreturn { error_log: errorLog };"
+      },
+      "id": "handle-qualification-error",
+      "name": "Handle Qualification Error",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify({\n  success: $json.success || false,\n  lead_id: $json.lead_id,\n  message: $json.success ? 'Lead qualification started successfully' : 'Lead qualification failed',\n  email_sent: $json.email_sent || false,\n  landing_page_created: $json.landing_page?.url ? true : false,\n  next_steps: $json.next_steps || []\n})}}"
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "amount": 300,
+        "unit": "seconds"
+      },
+      "id": "wait-5-minutes",
+      "name": "Wait 5 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    }
+  ],
+  "connections": {
+    "New Lead Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Start Lead Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Lead Qualification": {
+      "main": [
+        [
+          {
+            "node": "Qualification Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualification Success?": {
+      "main": [
+        [
+          {
+            "node": "Schedule Email Sequence",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Qualification Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Email Sequence": {
+      "main": [
+        [
+          {
+            "node": "Send First Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Schedule Scoring Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send First Email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Scoring Task": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Qualification Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "leadfly-lead-qualification",
+  "tags": [
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z",
+      "id": "leadfly",
+      "name": "leadfly"
+    },
+    {
+      "createdAt": "2025-01-13T00:00:00.000Z",
+      "updatedAt": "2025-01-13T00:00:00.000Z", 
+      "id": "automation",
+      "name": "automation"
+    }
+  ]
+}
