@@ -5,6 +5,7 @@ import { CheckIcon, SparklesIcon } from '@heroicons/react/24/solid'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { PERMANENT_PRICING, getAllPricing } from '../../pricing-config.js'
+import { SignUpButton, SignInButton } from '@clerk/nextjs'
 
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState('monthly')
@@ -31,6 +32,8 @@ export default function PricingPage() {
   }))
 
 
+  // Remove unused handleSubscribe function - now using Clerk SignUpButton modal
+  
   const addons = [
     {
       name: 'Cold Lead Expansion',
@@ -77,11 +80,6 @@ export default function PricingPage() {
     }
   ]
 
-  const handleSubscribe = async (planId) => {
-    // Redirect to signup page with selected plan
-    window.location.href = `/signup?plan=${planId}`
-  }
-
   return (
     <div className="min-h-screen bg-dark-50 text-dark-900 relative overflow-hidden">
       {/* Animated Background */}
@@ -108,11 +106,15 @@ export default function PricingPage() {
               <Link href="/about" className="btn-ghost">About</Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/auth" className="btn-secondary">Sign In</Link>
-              <Link href="/auth" className="btn-primary group">
-                Start Free Trial
-                <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              <SignInButton mode="modal">
+                <button className="btn-secondary">Sign In</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="btn-primary group">
+                  Start Free Trial
+                  <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </SignUpButton>
             </div>
           </div>
         </div>
@@ -265,16 +267,17 @@ export default function PricingPage() {
                       </div>
                     )}
                     
-                    <button 
-                      onClick={() => handleSubscribe(plan.id)}
-                      className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 ${
-                        plan.popular 
-                          ? 'btn-primary' 
-                          : 'btn-secondary hover:border-electric-500/50'
-                      }`}
-                    >
-                      {plan.id === 'starter' ? 'Start Free Trial' : `Choose ${plan.name}`}
-                    </button>
+                    <SignUpButton mode="modal">
+                      <button 
+                        className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 ${
+                          plan.popular 
+                            ? 'btn-primary' 
+                            : 'btn-secondary hover:border-electric-500/50'
+                        }`}
+                      >
+                        {plan.id === 'starter' ? 'Start Free Trial' : `Choose ${plan.name}`}
+                      </button>
+                    </SignUpButton>
                   </div>
                 </div>
               </div>
@@ -405,13 +408,15 @@ export default function PricingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <Link href="/auth" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
-                  <span className="relative z-10 flex items-center">
-                    <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
-                    Start Free Trial
-                  </span>
-                  <div className="gradient-streak"></div>
-                </Link>
+                <SignUpButton mode="modal">
+                  <button className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+                    <span className="relative z-10 flex items-center">
+                      <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
+                      Start Free Trial
+                    </span>
+                    <div className="gradient-streak"></div>
+                  </button>
+                </SignUpButton>
                 
                 <button className="btn-secondary text-xl px-8 py-4">
                   Schedule Platform Demo

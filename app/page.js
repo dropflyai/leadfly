@@ -161,13 +161,15 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-              <Link href="/signup" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
-                <span className="relative z-10 flex items-center">
-                  <RocketLaunchIcon className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
-                  Start Free Trial
-                </span>
-                <div className="gradient-streak"></div>
-              </Link>
+              <SignUpButton mode="modal">
+                <button className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+                  <span className="relative z-10 flex items-center">
+                    <RocketLaunchIcon className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
+                    Start Free Trial
+                  </span>
+                  <div className="gradient-streak"></div>
+                </button>
+              </SignUpButton>
               
               <Link href="/features" className="btn-secondary text-xl px-8 py-4 group">
                 <span className="flex items-center">
@@ -329,13 +331,15 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link href="/signup" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
-                <span className="relative z-10 flex items-center">
-                  <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
-                  Start Free Trial
-                </span>
-                <div className="gradient-streak"></div>
-              </Link>
+              <SignUpButton mode="modal">
+                <button className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+                  <span className="relative z-10 flex items-center">
+                    <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
+                    Start Free Trial
+                  </span>
+                  <div className="gradient-streak"></div>
+                </button>
+              </SignUpButton>
               
               <Link href="/features" className="btn-secondary text-xl px-8 py-4">
                 Schedule Demo
