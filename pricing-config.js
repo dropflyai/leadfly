@@ -104,23 +104,16 @@ export function getPricingWithPromo(planId, promoCode = null) {
   let discount = 0;
   let isPromotional = false;
   
-  // Apply promo codes
+  // Apply private promo codes (confidential)
   if (promoCode) {
     switch (promoCode.toUpperCase()) {
-      case 'FOUNDER100':
-      case 'LEADFLY100':
-      case 'DEMO100':
-        discount = plan.monthly_price; // 100% off
+      case 'RIO2024':
+        discount = plan.monthly_price; // 100% off for CEO
         finalPrice = 0;
         isPromotional = true;
         break;
-      case 'LAUNCH50':
-        discount = plan.monthly_price * 0.5; // 50% off
-        finalPrice = plan.monthly_price - discount;
-        isPromotional = true;
-        break;
-      case 'SAVE25':
-        discount = plan.monthly_price * 0.25; // 25% off
+      case 'DROPFLY':
+        discount = plan.monthly_price * 0.5; // 50% off for company use
         finalPrice = plan.monthly_price - discount;
         isPromotional = true;
         break;

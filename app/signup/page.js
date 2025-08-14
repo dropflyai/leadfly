@@ -240,7 +240,6 @@ export default function SignupPage() {
                 <h4 className="text-lg font-semibold mb-4">💡 Have a promo code?</h4>
                 <p className="text-dark-600 text-sm">
                   You can enter your promo code during checkout to get instant discounts.
-                  Valid codes include: FOUNDER100, LEADFLY100, DEMO100, LAUNCH50, SAVE25
                 </p>
               </div>
             </div>
