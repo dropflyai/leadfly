@@ -161,6 +161,7 @@ export default function HomePage() {
                 </span>
                 <span className="text-dark-700">with AI</span>
               </h1>
+              <div className="text-sm text-electric-400 mt-2 font-bold">🚀 DEPLOYMENT VERIFICATION: JAN-14-2025-16:00 - CLERK AUTH ENABLED 🚀</div>
               <div className="absolute -top-4 -right-4">
                 <div className="w-4 h-4 bg-neon-400 rounded-full animate-pulse shadow-neon"></div>
               </div>
