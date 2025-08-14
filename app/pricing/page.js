@@ -196,14 +196,8 @@ export default function PricingPage() {
                       {plan.originalPrice && billingPeriod === 'monthly' && (
                         <div className="flex justify-center mb-3">
                           <div className="bg-neon-500/20 border border-neon-500/30 text-neon-600 px-3 py-1 rounded-full text-xs font-semibold shadow-neon">
-                            Save ${(plan.originalPrice[billingPeriod] - plan.price[billingPeriod]).toLocaleString()}!
+                            Was ${plan.originalPrice[billingPeriod].toLocaleString()} → Now ${plan.price[billingPeriod].toLocaleString()} → Save ${(plan.originalPrice[billingPeriod] - plan.price[billingPeriod]).toLocaleString()}!
                           </div>
-                        </div>
-                      )}
-                      
-                      {plan.originalPrice && (
-                        <div className="text-sm text-dark-600 line-through mb-1">
-                          Was ${plan.originalPrice[billingPeriod].toLocaleString()}/{billingPeriod === 'monthly' ? 'month' : 'year'}
                         </div>
                       )}
                       <div className="text-4xl font-bold mb-2 text-dark-800">
@@ -234,18 +228,18 @@ export default function PricingPage() {
                     
                     {/* Features */}
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold text-dark-800 mb-3">What's Included:</h4>
+                      <h4 className="text-sm font-semibold text-dark-800 mb-3 text-center">What's Included:</h4>
                       <ul className="space-y-2 text-sm">
                         {plan.features.slice(0, 5).map((feature, idx) => (
-                          <li key={idx} className="flex items-start">
-                            <CheckIcon className={`w-4 h-4 mr-2 mt-0.5 flex-shrink-0 ${
+                          <li key={idx} className="flex items-center justify-center">
+                            <CheckIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${
                               plan.popular ? 'text-electric-400' : 'text-neon-400'
                             }`} />
-                            <span className="text-dark-700 text-left text-xs">{feature}</span>
+                            <span className="text-dark-700 text-center text-xs">{feature}</span>
                           </li>
                         ))}
                         {plan.features.length > 5 && (
-                          <li className="text-xs text-dark-600">
+                          <li className="text-xs text-dark-600 text-center">
                             +{plan.features.length - 5} more features
                           </li>
                         )}
@@ -255,12 +249,12 @@ export default function PricingPage() {
                     {/* Limitations */}
                     {plan.limitations.length > 0 && (
                       <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-dark-800 mb-3">Limitations:</h4>
+                        <h4 className="text-sm font-semibold text-dark-800 mb-3 text-center">Limitations:</h4>
                         <ul className="space-y-2 text-sm">
                           {plan.limitations.map((limitation, idx) => (
-                            <li key={idx} className="flex items-start">
-                              <span className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-red-400">⚠</span>
-                              <span className="text-dark-600 text-left text-xs">{limitation}</span>
+                            <li key={idx} className="flex items-center justify-center">
+                              <span className="w-4 h-4 mr-2 flex-shrink-0 text-red-400">⚠</span>
+                              <span className="text-dark-600 text-center text-xs">{limitation}</span>
                             </li>
                           ))}
                         </ul>
