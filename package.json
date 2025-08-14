@@ -1,6 +1,6 @@
 {
   "name": "dropfly-leadfly",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DropFly LeadFly - AI-Powered Lead Generation System",
   "main": "enhanced-lead-api.js",
   "type": "module",
@@ -61,7 +61,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dropfly/leadfly.git"
+    "url": "https://github.com/dropflyai/leadfly.git"
   },
   "engines": {
     "node": ">=18.0.0"
