@@ -2,7 +2,7 @@ import { SignUp } from '@clerk/nextjs'
 import { SparklesIcon } from '@heroicons/react/24/solid'
 import Link from 'next/link'
 
-export default function SignupPage() {
+export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-dark-50 text-dark-900 relative overflow-hidden">
       {/* Animated Background */}
