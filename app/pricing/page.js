@@ -4,118 +4,31 @@ import { useState } from 'react'
 import { CheckIcon, SparklesIcon } from '@heroicons/react/24/solid'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
+import { PERMANENT_PRICING, getAllPricing } from '../../pricing-config.js'
 
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState('monthly')
 
-  const plans = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      badge: 'Get Started',
-      price: { monthly: 97, yearly: 1164 },
-      originalPrice: { monthly: 200, yearly: 2400 },
-      leads: 50,
-      warmLeads: 50,
-      features: [
-        '50 qualified leads per month',
-        '99.2% duplicate prevention',
-        'AI lead scoring',
-        'Email automation',
-        'Basic analytics dashboard',
-        'Email support',
-        'TCPA compliance included'
-      ],
-      limitations: [
-        'Email support only',
-        'Standard templates',
-        'Basic integrations'
-      ],
-      popular: false,
-      gradient: 'from-electric-500 to-electric-600',
-      stripeId: 'price_starter'
+  const plans = getAllPricing().map(plan => ({
+    id: plan.id,
+    name: plan.name,
+    badge: plan.badge,
+    price: { 
+      monthly: plan.promotional_price || plan.monthly_price, 
+      yearly: plan.yearly_price 
     },
-    {
-      id: 'growth',
-      name: 'Growth',
-      badge: 'Most Popular',
-      price: { monthly: 400, yearly: 4800 },
-      leads: 100,
-      warmLeads: 100,
-      features: [
-        '100 qualified leads per month',
-        'Advanced landing page builder',
-        'Multi-sequence email automation',
-        'AI-powered qualification scoring',
-        'LinkedIn + email nurturing',
-        'Warm lead voice calls',
-        'Advanced call scheduling',
-        'Priority support',
-        'CRM integration basics'
-      ],
-      limitations: [
-        'No white-label features',
-        'Standard compliance monitoring',
-        'Limited custom integrations'
-      ],
-      popular: true,
-      gradient: 'from-purple-500 to-purple-600',
-      stripeId: 'price_growth'
-    },
-    {
-      id: 'scale',
-      name: 'Scale',
-      badge: 'Best Value',
-      price: { monthly: 999, yearly: 11988 },
-      leads: 500,
-      warmLeads: 500,
-      features: [
-        '500 qualified leads per month',
-        'Custom landing page domains',
-        'Advanced multi-channel nurturing',
-        'Predictive lead qualification',
-        'Multi-touch attribution',
-        'Call recording & analysis',
-        'Team collaboration (5 users)',
-        'CRM deep integrations',
-        'Custom call scripts',
-        'Dedicated support manager'
-      ],
-      limitations: [
-        'No white-label platform',
-        'Standard compliance reporting'
-      ],
-      popular: false,
-      gradient: 'from-neon-500 to-neon-600',
-      stripeId: 'price_scale'
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      badge: 'White Label',
-      price: { monthly: 1500, yearly: 18000 },
-      leads: 1000,
-      warmLeads: 1000,
-      features: [
-        '1000 qualified leads per month',
-        'White-label platform & branding',
-        'Custom qualification algorithms',
-        'Advanced compliance monitoring',
-        'Custom call center integration',
-        'Revenue sharing program',
-        'Dedicated infrastructure',
-        'Premium legal compliance',
-        'Custom AI model training',
-        'Unlimited team members',
-        'Enterprise SLA (99.9%)',
-        'Dedicated success team'
-      ],
-      limitations: [],
-      popular: false,
-      gradient: 'from-purple-600 to-purple-700',
-      stripeId: 'price_enterprise'
-    }
-  ]
+    originalPrice: plan.promotional_price ? { 
+      monthly: plan.monthly_price, 
+      yearly: plan.yearly_price 
+    } : null,
+    leads: plan.leads_per_month,
+    warmLeads: plan.leads_per_month,
+    features: plan.features,
+    limitations: [], // Add limitations if needed in pricing config
+    popular: plan.popular,
+    gradient: plan.gradient,
+    stripeId: plan.stripe_price_id
+  }))
 
   const addons = [
     {
@@ -164,9 +77,8 @@ export default function PricingPage() {
   ]
 
   const handleSubscribe = async (planId) => {
-    // TODO: Implement Stripe checkout
-    console.log('Subscribe to:', planId)
-    // Redirect to checkout or show modal
+    // Redirect to signup page with selected plan
+    window.location.href = `/signup?plan=${planId}`
   }
 
   return (

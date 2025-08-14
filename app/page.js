@@ -16,6 +16,7 @@ import {
   ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
+import { PERMANENT_PRICING, getAllPricing } from '../pricing-config.js'
 
 export default function HomePage() {
   const [selectedPlan, setSelectedPlan] = useState('pro')
@@ -33,73 +34,19 @@ export default function HomePage() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
-  const plans = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 97,
-      originalPrice: 200,
-      leads: 50,
-      warmLeads: 50,
-      badge: 'Get Started',
-      features: [
-        '50 qualified leads per month',
-        '99.2% duplicate prevention',
-        'AI lead scoring',
-        'Email automation'
-      ],
-      popular: false,
-      gradient: 'from-electric-500 to-electric-600'
-    },
-    {
-      id: 'growth',
-      name: 'Growth',
-      price: 400,
-      leads: 100,
-      warmLeads: 100,
-      badge: 'Most Popular',
-      features: [
-        '100 qualified leads per month',
-        'Advanced AI insights',
-        'CRM integrations',
-        'Priority support'
-      ],
-      popular: true,
-      gradient: 'from-purple-500 to-purple-600'
-    },
-    {
-      id: 'scale',
-      name: 'Scale',
-      price: 999,
-      leads: 500,
-      warmLeads: 500,
-      badge: 'Best Value',
-      features: [
-        '500 qualified leads per month',
-        'API access',
-        'Team collaboration',
-        'Custom reporting'
-      ],
-      popular: false,
-      gradient: 'from-neon-500 to-neon-600'
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 1500,
-      leads: 1000,
-      warmLeads: 1000,
-      badge: 'Enterprise Grade',
-      features: [
-        '1000 qualified leads per month',
-        'White-label capabilities',
-        'Dedicated success manager',
-        'Custom integrations'
-      ],
-      popular: false,
-      gradient: 'from-purple-600 to-purple-700'
-    }
-  ]
+  const plans = getAllPricing().map(plan => ({
+    id: plan.id,
+    name: plan.name,
+    price: plan.monthly_price,
+    originalPrice: plan.promotional_price ? plan.monthly_price : null,
+    promotional_price: plan.promotional_price,
+    leads: plan.leads_per_month,
+    warmLeads: plan.leads_per_month,
+    badge: plan.badge,
+    features: plan.features.slice(0, 4), // Show first 4 features for homepage
+    popular: plan.popular,
+    gradient: plan.gradient
+  }))
 
   const features = [
     {
@@ -181,8 +128,8 @@ export default function HomePage() {
               <Link href="/about" className="btn-ghost">About</Link>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/auth" className="btn-secondary">Sign In</Link>
-              <Link href="/auth" className="btn-primary group">
+              <Link href="/signup" className="btn-secondary">Sign In</Link>
+              <Link href="/signup" className="btn-primary group">
                 Start Free Trial
                 <ChevronRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Link>
@@ -218,7 +165,7 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-              <Link href="/auth" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+              <Link href="/signup" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
                 <span className="relative z-10 flex items-center">
                   <RocketLaunchIcon className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
                   Start Free Trial
@@ -354,18 +301,18 @@ export default function HomePage() {
                     <h3 className="text-lg font-bold mb-4 text-dark-800">{plan.name}</h3>
                     
                     <div className="mb-4">
-                      {plan.originalPrice && (
+                      {plan.promotional_price && (
                         <div className="text-sm text-dark-600 line-through mb-1">
-                          Was ${plan.originalPrice}/month
+                          Was ${plan.price}/month
                         </div>
                       )}
                       <div className={`text-3xl font-bold mb-1 bg-gradient-to-r ${plan.gradient} bg-clip-text text-transparent`}>
-                        ${plan.price}
+                        ${plan.promotional_price || plan.price}
                       </div>
                       <div className="text-xs text-dark-600">/month</div>
-                      {plan.originalPrice && (
+                      {plan.promotional_price && (
                         <div className="text-xs text-green-600 font-semibold mt-1">
-                          First month special: Save ${plan.originalPrice - plan.price}!
+                          First month special: Save ${plan.price - plan.promotional_price}!
                         </div>
                       )}
                     </div>
@@ -490,7 +437,7 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link href="/auth" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
+              <Link href="/signup" className="btn-primary text-xl px-8 py-4 group relative overflow-hidden">
                 <span className="relative z-10 flex items-center">
                   <SparklesIcon className="w-6 h-6 mr-3 group-hover:rotate-180 transition-transform duration-500" />
                   Start Free Trial
