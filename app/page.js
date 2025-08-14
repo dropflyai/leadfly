@@ -37,7 +37,8 @@ export default function HomePage() {
     {
       id: 'starter',
       name: 'Starter',
-      price: 49,
+      price: 97,
+      originalPrice: 200,
       leads: 50,
       warmLeads: 50,
       badge: 'Get Started',
@@ -53,12 +54,12 @@ export default function HomePage() {
     {
       id: 'growth',
       name: 'Growth',
-      price: 149,
-      leads: 200,
-      warmLeads: 200,
+      price: 400,
+      leads: 100,
+      warmLeads: 100,
       badge: 'Most Popular',
       features: [
-        '200 qualified leads per month',
+        '100 qualified leads per month',
         'Advanced AI insights',
         'CRM integrations',
         'Priority support'
@@ -69,7 +70,7 @@ export default function HomePage() {
     {
       id: 'scale',
       name: 'Scale',
-      price: 299,
+      price: 999,
       leads: 500,
       warmLeads: 500,
       badge: 'Best Value',
@@ -85,12 +86,12 @@ export default function HomePage() {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: 749,
-      leads: 2000,
-      warmLeads: 2000,
+      price: 1500,
+      leads: 1000,
+      warmLeads: 1000,
       badge: 'Enterprise Grade',
       features: [
-        '2000+ qualified leads per month',
+        '1000 qualified leads per month',
         'White-label capabilities',
         'Dedicated success manager',
         'Custom integrations'
@@ -353,10 +354,20 @@ export default function HomePage() {
                     <h3 className="text-lg font-bold mb-4 text-dark-800">{plan.name}</h3>
                     
                     <div className="mb-4">
+                      {plan.originalPrice && (
+                        <div className="text-sm text-dark-600 line-through mb-1">
+                          Was ${plan.originalPrice}/month
+                        </div>
+                      )}
                       <div className={`text-3xl font-bold mb-1 bg-gradient-to-r ${plan.gradient} bg-clip-text text-transparent`}>
                         ${plan.price}
                       </div>
                       <div className="text-xs text-dark-600">/month</div>
+                      {plan.originalPrice && (
+                        <div className="text-xs text-green-600 font-semibold mt-1">
+                          First month special: Save ${plan.originalPrice - plan.price}!
+                        </div>
+                      )}
                     </div>
                     
                     <div className="mb-4">

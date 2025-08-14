@@ -13,7 +13,8 @@ export default function PricingPage() {
       id: 'starter',
       name: 'Starter',
       badge: 'Get Started',
-      price: { monthly: 49, yearly: 588 },
+      price: { monthly: 97, yearly: 1164 },
+      originalPrice: { monthly: 200, yearly: 2400 },
       leads: 50,
       warmLeads: 50,
       features: [
@@ -38,11 +39,11 @@ export default function PricingPage() {
       id: 'growth',
       name: 'Growth',
       badge: 'Most Popular',
-      price: { monthly: 297, yearly: 2970 },
-      leads: 250,
-      warmLeads: 75,
+      price: { monthly: 400, yearly: 4800 },
+      leads: 100,
+      warmLeads: 100,
       features: [
-        '250 cold leads → 75 warm qualified leads',
+        '100 qualified leads per month',
         'Advanced landing page builder',
         'Multi-sequence email automation',
         'AI-powered qualification scoring',
@@ -65,11 +66,11 @@ export default function PricingPage() {
       id: 'scale',
       name: 'Scale',
       badge: 'Best Value',
-      price: { monthly: 597, yearly: 5970 },
+      price: { monthly: 999, yearly: 11988 },
       leads: 500,
-      warmLeads: 175,
+      warmLeads: 500,
       features: [
-        '500 cold leads → 175 warm qualified leads',
+        '500 qualified leads per month',
         'Custom landing page domains',
         'Advanced multi-channel nurturing',
         'Predictive lead qualification',
@@ -92,11 +93,11 @@ export default function PricingPage() {
       id: 'enterprise',
       name: 'Enterprise',
       badge: 'White Label',
-      price: { monthly: 1497, yearly: 14970 },
-      leads: 1500,
-      warmLeads: 600,
+      price: { monthly: 1500, yearly: 18000 },
+      leads: 1000,
+      warmLeads: 1000,
       features: [
-        '1500+ cold leads → 600+ warm qualified',
+        '1000 qualified leads per month',
         'White-label platform & branding',
         'Custom qualification algorithms',
         'Advanced compliance monitoring',
@@ -278,12 +279,22 @@ export default function PricingPage() {
                     <h3 className="text-xl font-bold mb-2 text-dark-800">{plan.name}</h3>
                     
                     <div className="mb-6">
+                      {plan.originalPrice && (
+                        <div className="text-sm text-dark-600 line-through mb-1">
+                          Was ${plan.originalPrice[billingPeriod].toLocaleString()}/{billingPeriod === 'monthly' ? 'month' : 'year'}
+                        </div>
+                      )}
                       <div className={`text-4xl font-bold mb-2 bg-gradient-to-r ${plan.gradient} bg-clip-text text-transparent`}>
                         ${plan.price[billingPeriod].toLocaleString()}
                       </div>
                       <div className="text-sm text-dark-600">
                         /{billingPeriod === 'monthly' ? 'month' : 'year'}
                       </div>
+                      {plan.originalPrice && (
+                        <div className="text-xs text-green-600 font-semibold mt-1">
+                          First month special: Save ${(plan.originalPrice[billingPeriod] - plan.price[billingPeriod]).toLocaleString()}!
+                        </div>
+                      )}
                       {billingPeriod === 'yearly' && (
                         <div className="text-xs text-neon-600 mt-1">
                           Save ${((plan.price.monthly * 12) - plan.price.yearly).toLocaleString()}
