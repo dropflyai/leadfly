@@ -74,6 +74,79 @@ export default function DemoDashboard() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+  const copyLeadData = (lead) => {
+    const leadText = `
+Name: ${lead.first_name} ${lead.last_name}
+Title: ${lead.job_title}
+Company: ${lead.company_name}
+Email: ${lead.email}
+Phone: ${lead.phone}
+Mobile: ${lead.mobile || 'N/A'}
+LinkedIn: ${lead.linkedin}
+Industry: ${lead.industry}
+Company Size: ${lead.employee_count} employees
+Revenue: ${lead.company_revenue}
+Website: ${lead.company_website}
+Address: ${lead.company_address}
+Lead Score: ${lead.lead_score}/100
+Conversion Probability: ${lead.conversion_probability}%
+Deal Value: $${lead.deal_value?.toLocaleString()}
+Predicted Close: ${new Date(lead.predicted_close_date).toLocaleDateString()}
+Next Action: ${lead.next_best_action}
+Source: ${lead.lead_source}
+Timezone: ${lead.timezone}
+Technologies: ${lead.technologies?.join(', ')}
+Notes: ${lead.notes}
+Insights: ${lead.ai_insights}
+    `.trim()
+    
+    navigator.clipboard.writeText(leadText).then(() => {
+      alert('Lead data copied to clipboard!')
+    })
+  }
+
+  const exportLeads = () => {
+    const csvContent = [
+      // CSV Headers
+      'First Name,Last Name,Email,Phone,Mobile,LinkedIn,Company,Website,Job Title,Industry,Employee Count,Revenue,Lead Score,Conversion Probability,Deal Value,Predicted Close Date,Next Action,Source,Timezone,Technologies,Notes,Insights',
+      // CSV Data
+      ...leads.map(lead => [
+        lead.first_name,
+        lead.last_name,
+        lead.email,
+        lead.phone,
+        lead.mobile || '',
+        lead.linkedin,
+        lead.company_name,
+        lead.company_website,
+        lead.job_title,
+        lead.industry,
+        lead.employee_count,
+        lead.company_revenue,
+        lead.lead_score,
+        lead.conversion_probability,
+        lead.deal_value,
+        lead.predicted_close_date,
+        lead.next_best_action,
+        lead.lead_source,
+        lead.timezone,
+        lead.technologies?.join('; ') || '',
+        lead.notes || '',
+        lead.ai_insights
+      ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','))
+    ].join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }
+
   // Sample lead data with enhanced properties
   const sampleLeads = [
     {
@@ -81,64 +154,100 @@ export default function DemoDashboard() {
       first_name: 'Sarah',
       last_name: 'Chen',
       email: 'sarah.chen@techcorp.com',
+      phone: '+1 (555) 123-4567',
+      mobile: '+1 (555) 123-4568',
+      linkedin: 'https://linkedin.com/in/sarahchen-vp',
       company_name: 'TechCorp Inc',
+      company_website: 'https://techcorp.com',
+      company_address: '123 Tech Street, San Francisco, CA 94105',
+      company_revenue: '$50M-100M',
       job_title: 'VP of Sales',
+      department: 'Sales',
+      seniority: 'VP',
       industry: 'Software',
       lead_score: 92,
       company_size: '51-200',
-      phone: '+1-555-0123',
+      employee_count: 150,
       status: 'new',
+      lead_source: 'LinkedIn Outreach',
       created_at: '2025-01-13T10:30:00Z',
+      last_contacted: '2025-01-13T10:30:00Z',
+      timezone: 'PST',
+      technologies: ['Salesforce', 'HubSpot', 'Slack'],
       ai_insights: 'Decision maker with budget authority. Company actively hiring.',
       intent_signals: ['job_posting', 'tech_stack_change', 'funding_round'],
       conversion_probability: 92,
       predicted_close_date: '2025-01-20',
       next_best_action: 'Schedule discovery call',
       engagement_likelihood: 'Very High',
-      deal_value: 45000
-    },
+      deal_value: 45000,
+      notes: 'Interested in scaling sales operations. Mentioned budget approval process.'    },
     {
       id: 2,
       first_name: 'Marcus',
       last_name: 'Johnson',
       email: 'marcus@growthco.com',
+      phone: '+1 (555) 234-5678',
+      mobile: '+1 (555) 234-5679',
+      linkedin: 'https://linkedin.com/in/marcusjohnson-ceo',
       company_name: 'GrowthCo',
+      company_website: 'https://growthco.io',
+      company_address: '456 Growth Ave, Austin, TX 78701',
+      company_revenue: '$10M-50M',
       job_title: 'CEO',
+      department: 'Executive',
+      seniority: 'C-Level',
       industry: 'Marketing',
       lead_score: 88,
       company_size: '11-50',
-      phone: '+1-555-0124',
+      employee_count: 35,
       status: 'contacted',
+      lead_source: 'Cold Email',
       created_at: '2025-01-13T09:15:00Z',
+      last_contacted: '2025-01-13T14:30:00Z',
+      timezone: 'CST',
+      technologies: ['Marketo', 'Salesforce', 'Google Analytics'],
       ai_insights: 'CEO looking for growth solutions. High budget allocation.',
       intent_signals: ['competitor_research', 'solution_search'],
       conversion_probability: 78,
       predicted_close_date: '2025-01-28',
       next_best_action: 'Send ROI case study',
       engagement_likelihood: 'High',
-      deal_value: 28000
-    },
+      deal_value: 28000,
+      notes: 'Responded to initial outreach. Wants to see competitive analysis.'    },
     {
       id: 3,
       first_name: 'Lisa',
       last_name: 'Rodriguez',
       email: 'l.rodriguez@scaleinc.com',
+      phone: '+1 (555) 345-6789',
+      mobile: '+1 (555) 345-6790',
+      linkedin: 'https://linkedin.com/in/lisarodriguez-marketing',
       company_name: 'Scale Inc',
+      company_website: 'https://scaleinc.com',
+      company_address: '789 Scale Blvd, New York, NY 10001',
+      company_revenue: '$100M+',
       job_title: 'Director of Marketing',
+      department: 'Marketing',
+      seniority: 'Director',
       industry: 'SaaS',
       lead_score: 85,
       company_size: '201-500',
-      phone: '+1-555-0125',
+      employee_count: 320,
       status: 'qualified',
+      lead_source: 'Referral',
       created_at: '2025-01-13T08:45:00Z',
+      last_contacted: '2025-01-14T11:15:00Z',
+      timezone: 'EST',
+      technologies: ['HubSpot', 'Pardot', 'Tableau'],
       ai_insights: 'Marketing director with expanding team. Budget approved.',
       intent_signals: ['hiring_spree', 'competitor_analysis'],
       conversion_probability: 85,
       predicted_close_date: '2025-01-25',
       next_best_action: 'Send custom proposal',
       engagement_likelihood: 'Very High',
-      deal_value: 38000
-    }
+      deal_value: 38000,
+      notes: 'Team of 12 marketers. Q1 budget allocated for lead gen tools.'    }
   ]
 
   const getScoreColor = (score) => {
@@ -450,9 +559,12 @@ export default function DemoDashboard() {
               <p className="text-dark-600">Conversion tracking and revenue attribution</p>
             </div>
             <div className="flex space-x-3">
-              <button className="btn-secondary text-sm group">
+              <button 
+                onClick={exportLeads}
+                className="btn-secondary text-sm group"
+              >
                 <BeakerIcon className="w-4 h-4 mr-2 group-hover:animate-pulse" />
-                Export Report
+                Export CSV
               </button>
               <button className="btn-secondary text-sm group">
                 <CpuChipIcon className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform" />
@@ -466,7 +578,8 @@ export default function DemoDashboard() {
               <thead>
                 <tr className="border-b border-dark-200/20">
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Lead Contact</th>
-                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Company</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Company Details</th>
+                  <th className="text-left py-4 px-6 font-semibold text-dark-800">Contact Info</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Score</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Revenue Potential</th>
                   <th className="text-left py-4 px-6 font-semibold text-dark-800">Status</th>
@@ -510,17 +623,33 @@ export default function DemoDashboard() {
                     <td className="py-6 px-6">
                       <div>
                         <div className="font-semibold text-dark-900">{lead.company_name}</div>
-                        <div className="text-sm text-dark-600">{lead.industry}</div>
-                        <div className="text-xs text-dark-500">{lead.company_size} entities</div>
-                        {lead.intent_signals && (
+                        <div className="text-sm text-dark-600">{lead.industry} • {lead.employee_count} employees</div>
+                        <div className="text-xs text-dark-500">{lead.company_revenue} revenue</div>
+                        <div className="text-xs text-electric-400 mt-1">{lead.company_website}</div>
+                        {lead.technologies && (
                           <div className="flex flex-wrap gap-1 mt-2">
-                            {lead.intent_signals.slice(0, 2).map((signal, idx) => (
+                            {lead.technologies.slice(0, 2).map((tech, idx) => (
                               <span key={idx} className="text-xs px-2 py-1 bg-neon-500/20 text-neon-400 rounded-full">
-                                {signal.replace('_', ' ')}
+                                {tech}
                               </span>
                             ))}
                           </div>
                         )}
+                      </div>
+                    </td>
+                    
+                    <td className="py-6 px-6">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-dark-800">{lead.phone}</div>
+                        {lead.mobile && (
+                          <div className="text-xs text-dark-600">Mobile: {lead.mobile}</div>
+                        )}
+                        <div className="text-xs text-electric-400">
+                          <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-electric-300">
+                            LinkedIn Profile
+                          </a>
+                        </div>
+                        <div className="text-xs text-dark-500">{lead.timezone} • {lead.lead_source}</div>
                       </div>
                     </td>
                     
@@ -574,14 +703,18 @@ export default function DemoDashboard() {
                     
                     <td className="py-6 px-6">
                       <div className="flex space-x-2">
-                        <button className="p-2 rounded-lg bg-dark-100/30 text-electric-400 hover:bg-electric-500/20 hover:text-electric-300 transition-all interactive-hover" title="Send Email">
+                        <button 
+                          onClick={() => copyLeadData(lead)}
+                          className="p-2 rounded-lg bg-dark-100/30 text-electric-400 hover:bg-electric-500/20 hover:text-electric-300 transition-all interactive-hover" 
+                          title="Copy Lead Data"
+                        >
+                          <BeakerIcon className="w-5 h-5" />
+                        </button>
+                        <button className="p-2 rounded-lg bg-dark-100/30 text-neon-400 hover:bg-neon-500/20 hover:text-neon-300 transition-all interactive-hover" title="Send Email">
                           <EnvelopeIcon className="w-5 h-5" />
                         </button>
-                        <button className="p-2 rounded-lg bg-dark-100/30 text-neon-400 hover:bg-neon-500/20 hover:text-neon-300 transition-all interactive-hover" title="Schedule Call">
+                        <button className="p-2 rounded-lg bg-dark-100/30 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 transition-all interactive-hover" title="Schedule Call">
                           <PhoneIcon className="w-5 h-5" />
-                        </button>
-                        <button className="p-2 rounded-lg bg-dark-100/30 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 transition-all interactive-hover" title="View Profile">
-                          <CpuChipIcon className="w-5 h-5" />
                         </button>
                       </div>
                     </td>
