@@ -902,19 +902,39 @@ Insights: ${lead.ai_insights}
           </div>
         </div>
 
-        {/* Premium Upsell Banner */}
+        {/* Tier-based Upsell Banner */}
         <div className={`mt-8 bg-gradient-to-r from-electric-500/10 to-purple-500/10 p-6 rounded-lg border border-electric-500/20 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="font-bold text-lg gradient-text">🚀 Premium Intelligence Active</h4>
-              <p className="text-dark-600 mt-1">
-                This comprehensive research report would typically cost $200+ per lead from other providers.
-                LeadFly AI Premium subscribers get unlimited access to enterprise-grade intelligence.
-              </p>
+              {userTier === 'premium' ? (
+                <>
+                  <h4 className="font-bold text-lg gradient-text">🚀 Premium Intelligence Active</h4>
+                  <p className="text-dark-600 mt-1">
+                    This comprehensive research report would typically cost $200+ per lead from other providers.
+                    LeadFly AI Premium subscribers get unlimited access to enterprise-grade intelligence.
+                  </p>
+                </>
+              ) : userTier === 'pro' ? (
+                <>
+                  <h4 className="font-bold text-lg gradient-text">⭐ Upgrade to Premium</h4>
+                  <p className="text-dark-600 mt-1">
+                    Unlock AI-powered insights, competitive intelligence, and predictive analytics to close more deals faster.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-bold text-lg gradient-text">🔓 Unlock Full Intelligence</h4>
+                  <p className="text-dark-600 mt-1">
+                    Get complete contact data, export capabilities, and advanced analytics. Start with Pro for just $99/month.
+                  </p>
+                </>
+              )}
             </div>
-            <button className="btn-primary ml-6 whitespace-nowrap">
-              Upgrade Team Access
-            </button>
+            {userTier !== 'premium' && (
+              <button className="btn-primary ml-6 whitespace-nowrap">
+                {userTier === 'pro' ? 'Upgrade to Premium' : 'Upgrade to Pro'}
+              </button>
+            )}
           </div>
         </div>
       </div>
