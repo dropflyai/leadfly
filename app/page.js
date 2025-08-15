@@ -342,7 +342,7 @@ export default function HomePage() {
                 </button>
               </SignUpButton>
               
-              <Link href="/features" className="btn-secondary text-xl px-8 py-4">
+              <Link href="/schedule-demo" className="btn-secondary text-xl px-8 py-4">
                 Schedule Demo
               </Link>
             </div>
