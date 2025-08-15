@@ -44,9 +44,11 @@ export default function RootLayout({ children }) {
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       signInUrl="/sign-in"
-      signUpUrl="/sign-up"
+      signUpUrl="/sign-up" 
       afterSignInUrl="/dashboard"
       afterSignUpUrl="/dashboard"
+      domain="leadflyai.com"
+      isSatellite={false}
       appearance={{
         baseTheme: 'dark',
         variables: {

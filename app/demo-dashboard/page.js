@@ -26,10 +26,12 @@ import Link from 'next/link'
 
 export default function DemoDashboard() {
   const [leads, setLeads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [stats, setStats] = useState({
-    totalLeads: 347,
-    highQualityLeads: 89,
-    conversionRate: 23.5,
+    totalLeads: 0,
+    highQualityLeads: 0,
+    conversionRate: 0,
     remainingCredits: 153
   })
   
@@ -66,9 +68,78 @@ export default function DemoDashboard() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [userTier, setUserTier] = useState('free') // 'free', 'pro', 'premium'
   
+  // Fetch leads from API
+  const fetchLeads = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // For demo purposes, use a demo user ID
+      const demoUserId = 'demo-user-123'
+      const params = new URLSearchParams({
+        user_id: demoUserId,
+        page: 1,
+        limit: 50
+      })
+      
+      // Add filters if set
+      if (filters.minScore > 0) params.append('min_score', filters.minScore)
+      if (filters.industry) params.append('industry', filters.industry)
+      if (filters.company_size) params.append('company_size', filters.company_size)
+      
+      const response = await fetch(`/api/leads?${params}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setLeads(data.leads || [])
+        
+        // Calculate stats from real data
+        const totalLeads = data.leads?.length || 0
+        const highQualityLeads = data.leads?.filter(lead => lead.lead_score >= 80).length || 0
+        const conversionRate = totalLeads > 0 ? ((highQualityLeads / totalLeads) * 100).toFixed(1) : 0
+        
+        setStats(prevStats => ({
+          ...prevStats,
+          totalLeads,
+          highQualityLeads,
+          conversionRate: parseFloat(conversionRate)
+        }))
+      } else {
+        // If no real data, fall back to sample data
+        console.log('No leads found, using sample data')
+        setLeads(sampleLeads)
+        setStats({
+          totalLeads: sampleLeads.length,
+          highQualityLeads: sampleLeads.filter(lead => lead.lead_score >= 80).length,
+          conversionRate: 85.5,
+          remainingCredits: 153
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching leads:', error)
+      setError(error.message)
+      
+      // Fall back to sample data on error
+      setLeads(sampleLeads)
+      setStats({
+        totalLeads: sampleLeads.length,
+        highQualityLeads: sampleLeads.filter(lead => lead.lead_score >= 80).length,
+        conversionRate: 85.5,
+        remainingCredits: 153
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+  
   useEffect(() => {
     setIsLoaded(true)
-    setLeads(sampleLeads)
+    fetchLeads()
     
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY })
@@ -77,6 +148,13 @@ export default function DemoDashboard() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
+  
+  // Refetch when filters change
+  useEffect(() => {
+    if (isLoaded) {
+      fetchLeads()
+    }
+  }, [filters])
 
   const copyLeadData = (lead) => {
     const leadText = `
@@ -543,8 +621,10 @@ Insights: ${lead.ai_insights}
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="status-dot status-online"></div>
-                <span className="text-sm text-dark-600">Demo Mode</span>
+                <div className={`status-dot ${loading ? 'status-loading' : error ? 'status-error' : 'status-online'}`}></div>
+                <span className="text-sm text-dark-600">
+                  {loading ? 'Loading...' : error ? 'API Error - Using Sample Data' : 'Live Data Connected'}
+                </span>
               </div>
               
               {/* Tier Selector for Demo */}
@@ -592,7 +672,7 @@ Insights: ${lead.ai_insights}
 
           {userTier !== 'free' ? (
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            {/* Revenue Forecast */}
+              {/* Revenue Forecast */}
             <div className="electric-card group interactive-hover relative overflow-hidden">
               <div className="gradient-streak"></div>
               <div className="relative z-10">
@@ -682,6 +762,7 @@ Insights: ${lead.ai_insights}
                   ${(predictions.riskAlerts.totalAtRisk / 1000).toFixed(0)}K pipeline at risk
                 </div>
               </div>
+            </div>
             </div>
           ) : (
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -905,7 +986,7 @@ Insights: ${lead.ai_insights}
                             </div>
                           )}
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     
                     <td className="py-6 px-6">

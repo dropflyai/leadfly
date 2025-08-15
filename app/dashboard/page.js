@@ -23,10 +23,12 @@ import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/sol
 export default function Dashboard() {
   const { user, isLoaded: userLoaded } = useUser()
   const [leads, setLeads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [stats, setStats] = useState({
-    totalLeads: 347,
-    highQualityLeads: 89,
-    conversionRate: 23.5,
+    totalLeads: 0,
+    highQualityLeads: 0,
+    conversionRate: 0,
     remainingCredits: 153
   })
   const [filters, setFilters] = useState({
@@ -46,17 +48,95 @@ export default function Dashboard() {
     </div>
   }
 
-  useEffect(() => {
-    setIsLoaded(true)
-    setLeads(sampleLeads)
-    
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
+  // Fetch leads from API
+  const fetchLeads = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Get user ID from Clerk if available
+      const userId = user?.id || 'demo-user-123'
+      const params = new URLSearchParams({
+        user_id: userId,
+        page: 1,
+        limit: 50
+      })
+      
+      // Add filters if set
+      if (filters.minScore > 0) params.append('min_score', filters.minScore)
+      if (filters.industry) params.append('industry', filters.industry)
+      if (filters.company_size) params.append('company_size', filters.company_size)
+      
+      const response = await fetch(`/api/leads?${params}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setLeads(data.leads || [])
+        
+        // Calculate stats from real data
+        const totalLeads = data.leads?.length || 0
+        const highQualityLeads = data.leads?.filter(lead => lead.lead_score >= 80).length || 0
+        const conversionRate = totalLeads > 0 ? ((highQualityLeads / totalLeads) * 100).toFixed(1) : 0
+        
+        setStats(prevStats => ({
+          ...prevStats,
+          totalLeads,
+          highQualityLeads,
+          conversionRate: parseFloat(conversionRate)
+        }))
+      } else {
+        // If no real data, fall back to sample data
+        console.log('No leads found, using sample data')
+        setLeads(sampleLeads)
+        setStats({
+          totalLeads: sampleLeads.length,
+          highQualityLeads: sampleLeads.filter(lead => lead.lead_score >= 80).length,
+          conversionRate: 85.5,
+          remainingCredits: 153
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching leads:', error)
+      setError(error.message)
+      
+      // Fall back to sample data on error
+      setLeads(sampleLeads)
+      setStats({
+        totalLeads: sampleLeads.length,
+        highQualityLeads: sampleLeads.filter(lead => lead.lead_score >= 80).length,
+        conversionRate: 85.5,
+        remainingCredits: 153
+      })
+    } finally {
+      setLoading(false)
     }
-    
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  }
+  
+  useEffect(() => {
+    if (userLoaded) {
+      setIsLoaded(true)
+      fetchLeads()
+      
+      const handleMouseMove = (e) => {
+        setMousePosition({ x: e.clientX, y: e.clientY })
+      }
+      
+      window.addEventListener('mousemove', handleMouseMove)
+      return () => window.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [userLoaded])
+  
+  // Refetch when filters change
+  useEffect(() => {
+    if (userLoaded && isLoaded) {
+      fetchLeads()
+    }
+  }, [filters])
 
   // Sample lead data with enhanced properties
   const sampleLeads = [
@@ -197,8 +277,10 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="status-dot status-online"></div>
-                <span className="text-sm text-dark-600">System Online</span>
+                <div className={`status-dot ${loading ? 'status-loading' : error ? 'status-error' : 'status-online'}`}></div>
+                <span className="text-sm text-dark-600">
+                  {loading ? 'Loading...' : error ? 'API Error - Using Sample Data' : 'Live Data Connected'}
+                </span>
               </div>
               <button className="btn-secondary group">
                 <AdjustmentsHorizontalIcon className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
