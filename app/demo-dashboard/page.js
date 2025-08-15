@@ -64,6 +64,7 @@ export default function DemoDashboard() {
   })
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isLoaded, setIsLoaded] = useState(false)
+  const [userTier, setUserTier] = useState('free') // 'free', 'pro', 'premium'
   
   useEffect(() => {
     setIsLoaded(true)
@@ -545,9 +546,21 @@ Insights: ${lead.ai_insights}
                 <div className="status-dot status-online"></div>
                 <span className="text-sm text-dark-600">Demo Mode</span>
               </div>
+              
+              {/* Tier Selector for Demo */}
+              <select 
+                value={userTier} 
+                onChange={(e) => setUserTier(e.target.value)}
+                className="input-glass text-sm"
+              >
+                <option value="free">Free Tier</option>
+                <option value="pro">Pro Tier ($99)</option>
+                <option value="premium">Premium Tier ($299)</option>
+              </select>
+              
               <button className="btn-secondary group">
                 <AdjustmentsHorizontalIcon className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-                Neural Config
+                Settings
               </button>
               <button className="btn-primary group">
                 <PlusIcon className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
@@ -559,17 +572,26 @@ Insights: ${lead.ai_insights}
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 relative z-10">
-        {/* Predictive Intelligence Center */}
+        {/* Performance Analytics Center */}
         <div className="mb-12">
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold mb-4">
-              <span className="gradient-text">Predictive Intelligence</span>
-              <span className="text-dark-800"> Center</span>
+              <span className="gradient-text">Performance Analytics</span>
+              <span className="text-dark-800"> Dashboard</span>
             </h2>
-            <p className="text-lg text-dark-600">AI-powered forecasting and predictive analytics</p>
+            <p className="text-lg text-dark-600">Real-time ROI metrics and conversion performance</p>
+            {userTier === 'free' && (
+              <div className="mt-4 bg-gradient-to-r from-electric-500/10 to-purple-500/10 p-4 rounded-lg border border-electric-500/20 max-w-2xl mx-auto">
+                <p className="text-sm text-dark-700">
+                  <span className="font-semibold">🔒 Advanced Analytics</span> - Upgrade to Professional to unlock pipeline metrics and revenue forecasting
+                </p>
+                <button className="btn-primary text-sm mt-2">Upgrade to Pro ($99/month)</button>
+              </div>
+            )}
           </div>
 
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          {userTier !== 'free' ? (
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             {/* Revenue Forecast */}
             <div className="electric-card group interactive-hover relative overflow-hidden">
               <div className="gradient-streak"></div>
@@ -661,7 +683,33 @@ Insights: ${lead.ai_insights}
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+              {/* Blurred/Locked Analytics for Free Tier */}
+              {Array.from({length: 4}).map((_, index) => (
+                <div key={index} className="glass-card group relative overflow-hidden">
+                  <div className="blur-sm pointer-events-none">
+                    <div className="flex items-center justify-between">
+                      <div className="p-3 rounded-xl bg-gray-500/20">
+                        <ChartBarIcon className="w-6 h-6 text-gray-400" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-1">Analytics Data</p>
+                      <p className="text-3xl font-bold text-gray-400">$$$</p>
+                      <p className="text-sm text-gray-400 mt-1">Locked</p>
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-dark-50/80">
+                    <div className="text-center">
+                      <div className="text-2xl mb-2">🔒</div>
+                      <button className="btn-primary text-xs">Upgrade to Pro</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Key Performance Indicators */}
@@ -765,15 +813,32 @@ Insights: ${lead.ai_insights}
             <div>
               <h2 className="text-2xl font-bold gradient-text">Lead Performance</h2>
               <p className="text-dark-600">Conversion tracking and revenue attribution</p>
+              {userTier === 'free' && (
+                <div className="mt-4 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
+                  <p className="text-sm text-dark-700">
+                    <span className="font-semibold">⚡ Limited View</span> - Free tier shows 3 leads. Upgrade for unlimited access.
+                  </p>
+                </div>
+              )}
             </div>
             <div className="flex space-x-3">
-              <button 
-                onClick={exportLeads}
-                className="btn-secondary text-sm group"
-              >
-                <BeakerIcon className="w-4 h-4 mr-2 group-hover:animate-pulse" />
-                Export CSV
-              </button>
+              {userTier !== 'free' ? (
+                <button 
+                  onClick={exportLeads}
+                  className="btn-secondary text-sm group"
+                >
+                  <BeakerIcon className="w-4 h-4 mr-2 group-hover:animate-pulse" />
+                  Export CSV
+                </button>
+              ) : (
+                <button 
+                  onClick={() => alert('Upgrade to Pro to export leads')}
+                  className="btn-secondary text-sm group opacity-50"
+                >
+                  <BeakerIcon className="w-4 h-4 mr-2" />
+                  Export CSV (Pro)
+                </button>
+              )}
               <button className="btn-secondary text-sm group">
                 <CpuChipIcon className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform" />
                 Bulk Actions
@@ -794,7 +859,7 @@ Insights: ${lead.ai_insights}
                 </tr>
               </thead>
               <tbody>
-                {leads.map((lead, index) => (
+                {(userTier === 'free' ? leads.slice(0, 3) : leads).map((lead, index) => (
                   <tr 
                     key={lead.id} 
                     className={`border-b border-dark-100/10 hover:bg-dark-100/20 transition-all duration-300 group ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
@@ -818,9 +883,19 @@ Insights: ${lead.ai_insights}
                         <div>
                           <div className="font-semibold text-dark-900 group-hover:gradient-text transition-all">
                             {lead.first_name} {lead.last_name}
-                            <span className="text-xs ml-2 px-2 py-1 bg-electric-500/20 text-electric-400 rounded-full">
-                              Premium Intel
-                            </span>
+                            {userTier === 'premium' ? (
+                              <span className="text-xs ml-2 px-2 py-1 bg-electric-500/20 text-electric-400 rounded-full">
+                                Premium Intel
+                              </span>
+                            ) : userTier === 'pro' ? (
+                              <span className="text-xs ml-2 px-2 py-1 bg-neon-500/20 text-neon-400 rounded-full">
+                                Pro
+                              </span>
+                            ) : (
+                              <span className="text-xs ml-2 px-2 py-1 bg-gray-500/20 text-gray-400 rounded-full">
+                                Basic
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-dark-600">{lead.job_title}</div>
                           <div className="text-xs text-dark-500">{lead.email}</div>
@@ -868,13 +943,23 @@ Insights: ${lead.ai_insights}
                     
                     <td className="py-6 px-6">
                       <div className="flex space-x-2">
-                        <button 
-                          onClick={() => copyLeadData(lead)}
-                          className="p-2 rounded-lg bg-dark-100/30 text-electric-400 hover:bg-electric-500/20 hover:text-electric-300 transition-all interactive-hover" 
-                          title="Copy Lead Data"
-                        >
-                          <BeakerIcon className="w-5 h-5" />
-                        </button>
+                        {userTier !== 'free' ? (
+                          <button 
+                            onClick={() => copyLeadData(lead)}
+                            className="p-2 rounded-lg bg-dark-100/30 text-electric-400 hover:bg-electric-500/20 hover:text-electric-300 transition-all interactive-hover" 
+                            title="Copy Lead Data"
+                          >
+                            <BeakerIcon className="w-5 h-5" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => alert('Upgrade to Pro to copy lead data')}
+                            className="p-2 rounded-lg bg-gray-500/30 text-gray-400 hover:bg-gray-500/20 transition-all" 
+                            title="Upgrade Required"
+                          >
+                            <BeakerIcon className="w-5 h-5" />
+                          </button>
+                        )}
                         <button className="p-2 rounded-lg bg-dark-100/30 text-neon-400 hover:bg-neon-500/20 hover:text-neon-300 transition-all interactive-hover" title="Send Email">
                           <EnvelopeIcon className="w-5 h-5" />
                         </button>
